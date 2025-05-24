@@ -204,7 +204,7 @@ export function Sidebar({
       </div>
       
       {/* Toggle Button */}
-      <div className="absolute top-4 -right-3 z-20">
+      <div className="absolute top-4 -right-4 z-20">
         <Button
           onClick={onToggleCollapse}
           variant="outline"
@@ -285,7 +285,7 @@ export function Sidebar({
         /* Expanded Sidebar */
         <>
           {/* Header */}
-          <div className="p-4 border-b border-white/10 relative z-10">
+          <div className="p-4 relative z-10">
             <div className="mb-3">
               <h1 className="text-lg font-bold gradient-text flex items-center gap-2">
                 <Sparkles className="h-5 w-5 text-primary" />
@@ -325,7 +325,7 @@ export function Sidebar({
           </div>
 
           {/* Footer */}
-          <div className="p-4 border-t border-white/10 relative z-10">
+          <div className="p-4 relative z-10">
             <UserMenu user={session?.user} />
           </div>
         </>

@@ -197,7 +197,6 @@
       rgba(26, 26, 46, 0.80) 50%, 
       rgba(22, 33, 62, 0.85) 100%);
     backdrop-filter: blur(20px);
-    border-right: 1px solid rgba(255, 255, 255, 0.1);
   }
   
   .chat-area-gradient {
@@ -208,7 +207,6 @@
       rgba(35, 45, 100, 0.4) 75%,
       rgba(50, 30, 110, 0.45) 100%);
     backdrop-filter: blur(15px);
-    border-left: 1px solid rgba(255, 255, 255, 0.05);
   }
   
   .modern-button {

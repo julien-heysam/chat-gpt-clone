@@ -56,7 +56,7 @@ export function ChatHeader({ conversationId, refreshTrigger = 0, selectedModel, 
   }
 
   return (
-    <div className="border-b border-white/10">
+    <div className="border-b border-white/10 -ml-px border-l border-l-white/10">
       <div className="max-w-4xl mx-auto p-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
