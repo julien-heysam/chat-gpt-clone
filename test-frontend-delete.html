@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Delete Functionality</title>
+</head>
+<body>
+    <h1>Delete Conversation Test</h1>
+    <p>Test conversation ID: <span id="testId">cmb1hj9u500017xama8qkbwko</span></p>
+    <button onclick="testDelete()">Test Delete API</button>
+    <div id="result"></div>
+
+    <script>
+        async function testDelete() {
+            const testId = document.getElementById('testId').textContent;
+            const resultDiv = document.getElementById('result');
+            
+            try {
+                console.log('🗑️ Testing delete for conversation:', testId);
+                
+                const response = await fetch(`/api/conversations/${testId}`, {
+                    method: 'DELETE',
+                    credentials: 'include',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+                
+                console.log('Response status:', response.status);
+                const data = await response.json();
+                console.log('Response data:', data);
+                
+                if (response.ok) {
+                    resultDiv.innerHTML = '<p style="color: green;">✅ Delete successful!</p>';
+                } else {
+                    resultDiv.innerHTML = `<p style="color: red;">❌ Delete failed: ${data.error}</p>`;
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                resultDiv.innerHTML = `<p style="color: red;">❌ Error: ${error.message}</p>`;
+            }
+        }
+    </script>
+</body>
+</html> 

@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Manual Delete Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        button { padding: 10px 20px; margin: 10px 0; background: #dc3545; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background: #c82333; }
+        .result { margin: 10px 0; padding: 10px; border-radius: 4px; }
+        .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+    </style>
+</head>
+<body>
+    <h1>Manual Delete Test</h1>
+    <p>This test will manually call the delete API to isolate the issue.</p>
+    
+    <div>
+        <label>Conversation ID to delete:</label>
+        <input type="text" id="convId" value="cmb1hj9u500017xama8qkbwko" style="width: 300px; padding: 5px;">
+    </div>
+    
+    <button onclick="manualDelete()">🗑️ Manual Delete Test</button>
+    <button onclick="listConversations()">📋 List All Conversations</button>
+    <button onclick="checkAuth()">👤 Check Auth Status</button>
+    
+    <div id="results"></div>
+
+    <script>
+        function addResult(message, type = 'info') {
+            const results = document.getElementById('results');
+            const div = document.createElement('div');
+            div.className = `result ${type}`;
+            div.innerHTML = message;
+            results.appendChild(div);
+            console.log(message);
+        }
+
+        async function checkAuth() {
+            try {
+                addResult('🔍 Checking authentication status...', 'info');
+                
+                const response = await fetch('/api/auth/session', {
+                    credentials: 'include'
+                });
+                
+                const session = await response.json();
+                
+                if (session?.user) {
+                    addResult(`✅ Authenticated as: ${session.user.email} (ID: ${session.user.id})`, 'success');
+                } else {
+                    addResult('❌ Not authenticated - please sign in first!', 'error');
+                }
+            } catch (error) {
+                addResult(`❌ Auth check error: ${error.message}`, 'error');
+            }
+        }
+
+        async function listConversations() {
+            try {
+                addResult('📋 Fetching conversations...', 'info');
+                
+                const response = await fetch('/api/conversations', {
+                    credentials: 'include'
+                });
+                
+                if (response.ok) {
+                    const conversations = await response.json();
+                    addResult(`📋 Found ${conversations.length} conversations:`, 'success');
+                    conversations.forEach((conv, i) => {
+                        addResult(`${i + 1}. ${conv.title} (ID: ${conv.id})`, 'info');
+                    });
+                } else {
+                    const error = await response.json();
+                    addResult(`❌ Failed to fetch conversations: ${error.error}`, 'error');
+                }
+            } catch (error) {
+                addResult(`❌ Fetch error: ${error.message}`, 'error');
+            }
+        }
+
+        async function manualDelete() {
+            const convId = document.getElementById('convId').value.trim();
+            
+            if (!convId) {
+                addResult('❌ Please enter a conversation ID', 'error');
+                return;
+            }
+
+            try {
+                addResult(`🗑️ Attempting to delete conversation: ${convId}`, 'info');
+                
+                const response = await fetch(`/api/conversations/${convId}`, {
+                    method: 'DELETE',
+                    credentials: 'include',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+                
+                addResult(`📡 Response status: ${response.status} ${response.statusText}`, 'info');
+                
+                const data = await response.json();
+                addResult(`📡 Response data: ${JSON.stringify(data)}`, 'info');
+                
+                if (response.ok) {
+                    addResult('✅ Delete successful!', 'success');
+                } else {
+                    addResult(`❌ Delete failed: ${data.error}`, 'error');
+                }
+            } catch (error) {
+                addResult(`❌ Delete error: ${error.message}`, 'error');
+            }
+        }
+
+        // Auto-check auth on page load
+        window.onload = () => {
+            checkAuth();
+        };
+    </script>
+</body>
+</html> 
