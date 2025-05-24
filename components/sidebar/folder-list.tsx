@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Folder, MoreHorizontal, FolderOpen, MessageSquare, Settings, Edit3, Trash2 } from "lucide-react"
+import { Folder, MoreHorizontal, FolderOpen, MessageSquare, Settings, Edit3, Trash2, Edit } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { FolderCreate } from "./folder-create"
 import { SystemPromptEditor } from "../system-prompt/system-prompt-editor"
@@ -41,6 +41,8 @@ export function FolderList({
   const [activeMenuId, setActiveMenuId] = useState<string | null>(null)
   const [editingPromptId, setEditingPromptId] = useState<string | null>(null)
   const [deleteConfirmation, setDeleteConfirmation] = useState<FolderItem | null>(null)
+  const [renameFolder, setRenameFolder] = useState<FolderItem | null>(null)
+  const [newFolderName, setNewFolderName] = useState("")
 
   const handleMenuClick = (e: React.MouseEvent, folderId: string) => {
     e.stopPropagation()
@@ -50,6 +52,44 @@ export function FolderList({
   const handleEditInstructions = (folderId: string) => {
     setEditingPromptId(folderId)
     setActiveMenuId(null)
+  }
+
+  const handleRenameClick = (folder: FolderItem) => {
+    setRenameFolder(folder)
+    setNewFolderName(folder.name)
+    setActiveMenuId(null)
+  }
+
+  const handleRenameConfirm = async () => {
+    if (!renameFolder || !newFolderName.trim()) return
+    
+    try {
+      const response = await fetch(`/api/folders/${renameFolder.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ name: newFolderName.trim() }),
+      })
+
+      if (response.ok) {
+        const updatedFolder = await response.json()
+        onFolderUpdated(updatedFolder)
+        setRenameFolder(null)
+        setNewFolderName("")
+      } else {
+        const errorData = await response.json()
+        alert(`Failed to rename folder: ${errorData.error || 'Unknown error'}`)
+      }
+    } catch (error) {
+      console.error('Error renaming folder:', error)
+      alert('Failed to rename folder. Please try again.')
+    }
+  }
+
+  const handleRenameCancel = () => {
+    setRenameFolder(null)
+    setNewFolderName("")
   }
 
   const handleDeleteClick = (folder: FolderItem) => {
@@ -292,6 +332,16 @@ export function FolderList({
                       </>
                     )}
                   </button>
+                  <button
+                    className="w-full px-3 py-2 text-left text-sm text-white/80 hover:bg-white/10 flex items-center gap-2"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleRenameClick(folder)
+                    }}
+                  >
+                    <Edit className="h-4 w-4" />
+                    Rename folder
+                  </button>
                   {onFolderDeleted && (
                     <button
                       className="w-full px-3 py-2 text-left text-sm text-red-400 hover:bg-red-500/10 flex items-center gap-2"
@@ -335,6 +385,62 @@ export function FolderList({
           isOpen={!!editingPromptId && editingPromptId !== 'global'}
           onClose={() => setEditingPromptId(null)}
         />
+      )}
+
+      {/* Rename Folder Modal */}
+      {renameFolder && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="bg-slate-900 border border-white/20 rounded-lg shadow-xl max-w-md w-full mx-4 p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center">
+                <Edit className="h-5 w-5 text-blue-400" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-white">Rename Folder</h3>
+                <p className="text-sm text-white/60">Enter a new name for this folder</p>
+              </div>
+            </div>
+            
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-white/80 mb-2">
+                Folder Name
+              </label>
+              <input
+                type="text"
+                value={newFolderName}
+                onChange={(e) => setNewFolderName(e.target.value)}
+                className="w-full px-3 py-2 bg-white/5 border border-white/20 rounded-lg text-white placeholder:text-white/50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="Enter folder name..."
+                autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    handleRenameConfirm()
+                  } else if (e.key === 'Escape') {
+                    handleRenameCancel()
+                  }
+                }}
+              />
+            </div>
+            
+            <div className="flex gap-3 justify-end">
+              <Button
+                variant="outline"
+                onClick={handleRenameCancel}
+                className="border-white/20 text-white/80 hover:bg-white/10"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleRenameConfirm}
+                disabled={!newFolderName.trim()}
+                className="bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Edit className="h-4 w-4 mr-2" />
+                Rename
+              </Button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Delete Confirmation Modal */}

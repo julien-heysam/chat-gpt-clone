@@ -1,6 +1,7 @@
 "use client"
 
 import { signOut } from "next-auth/react"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { User, LogOut, Settings, UserCircle } from "lucide-react"
 
@@ -13,8 +14,14 @@ interface UserMenuProps {
 }
 
 export function UserMenu({ user }: UserMenuProps) {
+  const router = useRouter()
+
   const handleSignOut = () => {
     signOut({ callbackUrl: "/auth/signin" })
+  }
+
+  const handleSettings = () => {
+    router.push("/settings")
   }
 
   return (
@@ -46,6 +53,7 @@ export function UserMenu({ user }: UserMenuProps) {
           variant="ghost" 
           size="sm" 
           className="flex-1 gap-2 glass-effect hover:glass-effect hover:bg-white/10 transition-all duration-300 text-white/70 hover:text-white border border-white/20 hover:border-primary/50"
+          onClick={handleSettings}
         >
           <Settings className="h-4 w-4" />
           Settings

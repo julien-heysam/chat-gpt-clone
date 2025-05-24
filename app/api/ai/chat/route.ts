@@ -429,12 +429,22 @@ async function* callAnthropicStreamingAPI(
       if (chunk.content_block.type === 'tool_use') {
         currentToolUse = chunk.content_block
         accumulatedToolInput = ""
-        // Yield tool use start indicator
-        yield `\n\n🔧 **Using ${currentToolUse.name} tool...**\n\n`
+        // Send tool call start event
+        yield JSON.stringify({
+          type: 'tool_call_start',
+          data: {
+            id: currentToolUse.id,
+            name: currentToolUse.name,
+            status: 'calling'
+          }
+        }) + '\n'
       }
     } else if (chunk.type === 'content_block_delta') {
       if (chunk.delta.type === 'text_delta') {
-        yield chunk.delta.text
+        yield JSON.stringify({
+          type: 'content',
+          data: chunk.delta.text
+        }) + '\n'
       } else if (chunk.delta.type === 'input_json_delta' && currentToolUse) {
         accumulatedToolInput += chunk.delta.partial_json
       }
@@ -454,6 +464,15 @@ async function* callAnthropicStreamingAPI(
           }
         }
         
+        // Send tool call input event
+        yield JSON.stringify({
+          type: 'tool_call_input',
+          data: {
+            id: currentToolUse.id,
+            input: toolInput
+          }
+        }) + '\n'
+        
         const toolResult = await executeToolCall(currentToolUse, toolInput, tools)
         
         // Store tool use and result for follow-up
@@ -470,7 +489,14 @@ async function* callAnthropicStreamingAPI(
           content: toolResult
         })
         
-        yield `**Tool Result:** ${toolResult}\n\n`
+        // Send tool call success event
+        yield JSON.stringify({
+          type: 'tool_call_success',
+          data: {
+            id: currentToolUse.id,
+            output: toolResult
+          }
+        }) + '\n'
       } catch (error) {
         console.error('Tool execution error:', error)
         const errorMessage = error instanceof Error ? error.message : 'Unknown error'
@@ -485,7 +511,14 @@ async function* callAnthropicStreamingAPI(
           })
         }
         
-        yield `**Tool Error:** ${errorMessage}\n\n`
+        // Send tool call error event
+        yield JSON.stringify({
+          type: 'tool_call_error',
+          data: {
+            id: currentToolUse.id,
+            error: errorMessage
+          }
+        }) + '\n'
       }
       currentToolUse = null
       accumulatedToolInput = ""
@@ -495,27 +528,27 @@ async function* callAnthropicStreamingAPI(
   // If we have tool results, make a follow-up call for the AI to process them
   if (toolResults.length > 0) {
     console.log(`Found ${toolResults.length} tool results, making follow-up call`)
-    yield `\n\n**Processing search results...**\n\n`
     
     try {
       // Create follow-up messages with tool results in correct Anthropic format
-      const followUpMessages = [
+      const followUpMessages: Anthropic.Messages.MessageParam[] = [
         ...conversationMessages,
         {
-          role: "assistant" as const,
+          role: "assistant",
           content: toolUseBlocks
         },
         {
-          role: "user" as const,
+          role: "user", 
           content: toolResults
         }
       ]
 
       console.log('Making follow-up call with tool results:', {
         toolUseBlocks: toolUseBlocks.length,
-        toolResults: toolResults.length
+        toolResults: toolResults.length,
+        messagesLength: followUpMessages.length
       })
-
+      
       const followUpStream = await anthropic.messages.create({
         model,
         max_tokens: maxTokens,
@@ -525,15 +558,26 @@ async function* callAnthropicStreamingAPI(
         stream: true
       })
 
+      console.log('Follow-up stream started successfully')
+      let chunkCount = 0
+      
       for await (const chunk of followUpStream) {
+        chunkCount++
         if (chunk.type === 'content_block_delta' && chunk.delta.type === 'text_delta') {
-          yield chunk.delta.text
+          yield JSON.stringify({
+            type: 'content',
+            data: chunk.delta.text
+          }) + '\n'
         }
       }
+      
+      console.log(`Follow-up stream completed with ${chunkCount} chunks`)
     } catch (error) {
       console.error('Follow-up API call failed:', error)
-      console.error('Error details:', error)
-      yield `\n\n*Note: Could not process tool results for a more detailed response. Error: ${error instanceof Error ? error.message : 'Unknown error'}*`
+      yield JSON.stringify({
+        type: 'content',
+        data: `\n\n*Note: Could not process tool results for a more detailed response. Error: ${error instanceof Error ? error.message : 'Unknown error'}*`
+      }) + '\n'
     }
   }
 }
@@ -703,19 +747,19 @@ export async function POST(request: NextRequest) {
               validatedMaxTokens,
               tools
             )) {
-              const data = JSON.stringify({ content: chunk, model: modelId })
-              controller.enqueue(encoder.encode(`data: ${data}\n\n`))
+              controller.enqueue(encoder.encode(chunk))
             }
             
             // Send final message to indicate completion
-            controller.enqueue(encoder.encode(`data: [DONE]\n\n`))
+            controller.enqueue(encoder.encode(JSON.stringify({ type: 'done' }) + '\n'))
             controller.close()
           } catch (error) {
             console.error("Streaming error:", error)
             const errorData = JSON.stringify({ 
-              error: error instanceof Error ? error.message : "Unknown error" 
+              type: 'error',
+              data: { message: error instanceof Error ? error.message : "Unknown error" }
             })
-            controller.enqueue(encoder.encode(`data: ${errorData}\n\n`))
+            controller.enqueue(encoder.encode(errorData + '\n'))
             controller.close()
           }
         },

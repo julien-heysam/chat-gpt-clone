@@ -13,12 +13,12 @@ model Account {
   type              String
   provider          String
   providerAccountId String
-  refresh_token     String? @db.Text
-  access_token      String? @db.Text
+  refresh_token     String?
+  access_token      String?
   expires_at        Int?
   token_type        String?
   scope             String?
-  id_token          String? @db.Text
+  id_token          String?
   session_state     String?
   user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -40,14 +40,15 @@ model User {
   name               String?
   password           String?
   image              String?
-  globalSystemPrompt String?        @db.Text
-  accounts           Account[]
-  sessions           Session[]
-  conversations      Conversation[]
-  folders            Folder[]
-  documents          Document[]
   createdAt          DateTime       @default(now())
   updatedAt          DateTime       @updatedAt
+  globalSystemPrompt String?
+  accounts           Account[]
+  conversations      Conversation[]
+  documents          Document[]
+  folders            Folder[]
+  sessions           Session[]
+  userTools          UserTool[]
 }
 
 model VerificationToken {
@@ -61,75 +62,87 @@ model VerificationToken {
 model Folder {
   id            String         @id @default(cuid())
   name          String
-  systemPrompt  String?        @db.Text
   userId        String
-  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  conversations Conversation[]
-  documents     Document[]
   createdAt     DateTime       @default(now())
   updatedAt     DateTime       @updatedAt
+  systemPrompt  String?
+  conversations Conversation[]
+  documents     Document[]
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Conversation {
   id        String    @id @default(cuid())
   title     String
   userId    String
-  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   folderId  String?
-  folder    Folder?   @relation(fields: [folderId], references: [id], onDelete: SetNull)
-  messages  Message[]
-  tools     Tool[]
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
+  folder    Folder?   @relation(fields: [folderId], references: [id])
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages  Message[]
+  tools     Tool[]    @relation("ConversationToTool")
 }
 
 model Message {
   id             String       @id @default(cuid())
-  content        String       @db.Text
+  content        String
   role           MessageRole
-  model          String       @default("claude-4-sonnet")
-  latency        Int?         // Response latency in milliseconds
-  inputTokens    Int?         // Number of input tokens used
-  outputTokens   Int?         // Number of output tokens generated
-  cost           Float?       // Cost in USD for this message
   conversationId String
-  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   createdAt      DateTime     @default(now())
   updatedAt      DateTime     @updatedAt
+  model          String       @default("claude-4-sonnet")
+  latency        Int?
+  cost           Float?
+  inputTokens    Int?
+  outputTokens   Int?
+  toolCalls      Json?
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
 }
 
 model Tool {
   id               String         @id @default(cuid())
   name             String
   description      String?
-  enabled          Boolean        @default(true)
-  
-  // MCP Connection Fields
-  toolType         ToolType       @default(BUILTIN)
-  mcpConnectionUrl String?        // URL to the MCP server
-  mcpAuthType      McpAuthType?   // Authentication type
-  mcpAuthToken     String?        // Encrypted authentication token/key
-  mcpSchema        Json?          // JSON schema defining the tool's capabilities
-  mcpTimeout       Int?           @default(30000) // Timeout in milliseconds
-  
-  conversations    Conversation[]
   createdAt        DateTime       @default(now())
   updatedAt        DateTime       @updatedAt
+  mcpAuthToken     String?
+  mcpAuthType      McpAuthType?
+  mcpConnectionUrl String?
+  mcpSchema        Json?
+  mcpTimeout       Int?           @default(30000)
+  toolType         ToolType       @default(BUILTIN)
+  userTools        UserTool[]
+  conversations    Conversation[] @relation("ConversationToTool")
+}
+
+model UserTool {
+  id               String   @id @default(cuid())
+  userId           String
+  toolId           String
+  enabled          Boolean  @default(false)
+  userMcpAuthToken String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  tool             Tool     @relation(fields: [toolId], references: [id], onDelete: Cascade)
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, toolId])
 }
 
 model Document {
-  id          String   @id @default(cuid())
-  filename    String
+  id           String   @id @default(cuid())
+  filename     String
   originalName String
-  mimeType    String
-  size        Int      // File size in bytes
-  path        String   // Local file path
-  folderId    String
-  folder      Folder   @relation(fields: [folderId], references: [id], onDelete: Cascade)
-  userId      String
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  mimeType     String
+  size         Int
+  path         String
+  folderId     String
+  userId       String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  folder       Folder   @relation(fields: [folderId], references: [id], onDelete: Cascade)
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 enum MessageRole {

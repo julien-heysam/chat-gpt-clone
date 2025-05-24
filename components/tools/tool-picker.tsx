@@ -49,9 +49,9 @@ export function ToolPicker({ isOpen, onClose, onToolSelect, selectedTools }: Too
   }
 
   const filteredTools = tools.filter(tool => {
-    if (filter === 'ALL') return tool.enabled
-    if (filter === 'BUILTIN') return tool.enabled && tool.toolType === 'BUILTIN'
-    if (filter === 'MCP') return tool.enabled && tool.toolType === 'MCP'
+    if (filter === 'ALL') return true
+    if (filter === 'BUILTIN') return tool.toolType === 'BUILTIN'
+    if (filter === 'MCP') return tool.toolType === 'MCP'
     return true
   })
 

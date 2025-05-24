@@ -22,6 +22,14 @@ interface Message {
   outputTokens?: number
   cost?: number
   createdAt: string
+  toolCalls?: Array<{
+    id: string
+    name: string
+    input: any
+    output?: string
+    status: 'calling' | 'success' | 'error'
+    error?: string
+  }>
 }
 
 interface ChatAreaProps {
@@ -118,10 +126,10 @@ export function ChatArea({
   const loadMessages = async (convId: string) => {
     setIsLoadingMessages(true)
     try {
-      const response = await fetch(`/api/conversations/${convId}`)
+      const response = await fetch(`/api/conversations/${convId}/messages`)
       if (response.ok) {
-        const conversation = await response.json()
-        const processedMessages = conversation.messages.map((msg: any) => ({
+        const data = await response.json()
+        const formattedMessages = data.map((msg: any) => ({
           id: msg.id,
           content: msg.content,
           role: msg.role.toLowerCase(),
@@ -130,9 +138,12 @@ export function ChatArea({
           inputTokens: msg.inputTokens,
           outputTokens: msg.outputTokens,
           cost: msg.cost,
-          createdAt: msg.createdAt
+          createdAt: msg.createdAt,
+          toolCalls: msg.toolCalls || undefined
         }))
-        setMessages(processedMessages)
+        setMessages(formattedMessages)
+      } else {
+        console.error("Failed to load messages")
       }
     } catch (error) {
       console.error("Error loading messages:", error)
@@ -141,34 +152,34 @@ export function ChatArea({
     }
   }
 
-  const saveMessage = async (convId: string, content: string, role: string, model?: string, latency?: number) => {
+  const saveMessage = async (convId: string, content: string, role: string, model?: string, latency?: number, toolCalls?: any[]) => {
     try {
-      const response = await fetch(`/api/conversations/${convId}/messages`, {
+      const response = await fetch('/api/conversations/messages', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ content, role, model, latency }),
+        body: JSON.stringify({
+          conversationId: convId,
+          content,
+          role,
+          model,
+          latency,
+          toolCalls
+        })
       })
-      
+
       if (response.ok) {
         const savedMessage = await response.json()
-        return {
-          id: savedMessage.id,
-          content: savedMessage.content,
-          role: savedMessage.role.toLowerCase(),
-          model: savedMessage.model,
-          latency: savedMessage.latency,
-          inputTokens: savedMessage.inputTokens,
-          outputTokens: savedMessage.outputTokens,
-          cost: savedMessage.cost,
-          createdAt: savedMessage.createdAt
-        }
+        return savedMessage
+      } else {
+        console.error('Failed to save message')
+        return null
       }
     } catch (error) {
-      console.error("Error saving message:", error)
+      console.error('Error saving message:', error)
+      return null
     }
-    return null
   }
 
   const handleSendMessage = async (content: string, model: string = selectedModel, tools: Tool[] = []) => {
@@ -260,6 +271,7 @@ export function ChatArea({
 
           setMessages(prev => [...prev, tempAiMessage])
 
+          // Stream AI response
           const response = await fetch('/api/ai/chat', {
             method: 'POST',
             headers: {
@@ -268,81 +280,126 @@ export function ChatArea({
             body: JSON.stringify({
               messages: conversationHistory,
               model,
+              conversationId: currentConversationId,
               systemPrompt: activeSystemPrompt,
-              folderId: selectedFolderId,
-              stream: true,
-              temperature: localTemperature,
-              maxTokens: localMaxTokens,
-              tools: tools.length > 0 ? tools : undefined,
-              conversationId: currentConversationId
-            }),
+              temperature: temperature,
+              maxTokens: maxTokens,
+              tools: tools.length > 0 ? tools : selectedTools
+            })
           })
 
           if (!response.ok) {
-            const errorData = await response.json()
-            throw new Error(errorData.error || 'Failed to get AI response')
+            throw new Error('Failed to get AI response')
           }
 
-          // Handle streaming response
           const reader = response.body?.getReader()
           if (!reader) {
-            throw new Error('No response body reader available')
+            throw new Error('No response stream available')
           }
 
-          const decoder = new TextDecoder()
           let accumulatedContent = ""
-          let firstChunkReceived = false
-          
-          try {
-            while (true) {
-              const { done, value } = await reader.read()
-              
-              if (done) break
-              
-              const chunk = decoder.decode(value, { stream: true })
-              const lines = chunk.split('\n')
-              
-              for (const line of lines) {
-                if (line.startsWith('data: ')) {
-                  const data = line.slice(6).trim()
-                  
-                  if (data === '[DONE]') {
-                    // Stream completed
-                    break
-                  }
-                  
-                  try {
-                    const parsed = JSON.parse(data)
-                    if (parsed.error) {
-                      throw new Error(parsed.error)
-                    }
-                    
-                    if (parsed.content) {
-                      if (!firstChunkReceived) {
-                        // Hide loading indicator when first chunk arrives
-                        setIsLoading(false)
-                        firstChunkReceived = true
-                      }
-                      
-                      accumulatedContent += parsed.content
-                      
-                      // Update the message in real-time
-                      setMessages(prev => 
-                        prev.map(msg => 
-                          msg.id === tempAiMessage.id 
-                            ? { ...msg, content: accumulatedContent }
-                            : msg
-                        )
+          let currentToolCalls: any[] = []
+
+          while (true) {
+            const { done, value } = await reader.read()
+            if (done) break
+
+            const chunk = new TextDecoder().decode(value)
+            const lines = chunk.split('\n').filter(line => line.trim())
+
+            for (const line of lines) {
+              try {
+                const event = JSON.parse(line)
+                
+                switch (event.type) {
+                  case 'content':
+                    accumulatedContent += event.data
+                    // Update the temporary message with accumulated content
+                    setMessages(prev => 
+                      prev.map(msg => 
+                        msg.id === tempAiMessage.id 
+                          ? { ...msg, content: accumulatedContent }
+                          : msg
                       )
+                    )
+                    break
+                    
+                  case 'tool_call_start':
+                    const newToolCall = {
+                      id: event.data.id,
+                      name: event.data.name,
+                      input: null,
+                      output: null,
+                      status: 'calling' as const,
+                      error: undefined
                     }
-                  } catch (parseError) {
-                    console.error('Error parsing streaming data:', parseError)
-                  }
+                    currentToolCalls.push(newToolCall)
+                    setMessages(prev => 
+                      prev.map(msg => 
+                        msg.id === tempAiMessage.id 
+                          ? { ...msg, toolCalls: [...currentToolCalls] }
+                          : msg
+                      )
+                    )
+                    break
+                    
+                  case 'tool_call_input':
+                    currentToolCalls = currentToolCalls.map(tc =>
+                      tc.id === event.data.id ? { ...tc, input: event.data.input } : tc
+                    )
+                    setMessages(prev => 
+                      prev.map(msg => 
+                        msg.id === tempAiMessage.id 
+                          ? { ...msg, toolCalls: [...currentToolCalls] }
+                          : msg
+                      )
+                    )
+                    break
+                    
+                  case 'tool_call_success':
+                    currentToolCalls = currentToolCalls.map(tc =>
+                      tc.id === event.data.id 
+                        ? { ...tc, output: event.data.output, status: 'success' as const }
+                        : tc
+                    )
+                    setMessages(prev => 
+                      prev.map(msg => 
+                        msg.id === tempAiMessage.id 
+                          ? { ...msg, toolCalls: [...currentToolCalls] }
+                          : msg
+                      )
+                    )
+                    break
+                    
+                  case 'tool_call_error':
+                    currentToolCalls = currentToolCalls.map(tc =>
+                      tc.id === event.data.id 
+                        ? { ...tc, error: event.data.error, status: 'error' as const }
+                        : tc
+                    )
+                    setMessages(prev => 
+                      prev.map(msg => 
+                        msg.id === tempAiMessage.id 
+                          ? { ...msg, toolCalls: [...currentToolCalls] }
+                          : msg
+                      )
+                    )
+                    break
+                    
+                  case 'done':
+                    // Streaming complete
+                    break
+                    
+                  case 'error':
+                    throw new Error(event.data.message)
+                    
+                  default:
+                    console.warn('Unknown event type:', event.type)
                 }
+              } catch (e) {
+                console.warn('Failed to parse event:', line, e)
               }
             }
-          } finally {
-            reader.releaseLock()
           }
 
           const responseEndTime = Date.now()
@@ -350,7 +407,7 @@ export function ChatArea({
           
           // Save final AI message to database
           if (accumulatedContent) {
-            const savedAiMessage = await saveMessage(currentConversationId!, accumulatedContent, "assistant", model, responseLatency)
+            const savedAiMessage = await saveMessage(currentConversationId!, accumulatedContent, "assistant", model, responseLatency, currentToolCalls)
             
             if (savedAiMessage) {
               setMessages(prev => 
@@ -390,7 +447,7 @@ export function ChatArea({
           })
           
           // Save error message to database
-          await saveMessage(currentConversationId!, errorMessage.content, "assistant", model, responseLatency)
+          await saveMessage(currentConversationId!, errorMessage.content, "assistant", model, responseLatency, [])
           
           // Refresh conversation stats
           setRefreshTrigger(prev => prev + 1)
@@ -404,6 +461,13 @@ export function ChatArea({
       setMessages(prev => prev.filter(msg => msg.id !== tempUserMessage.id))
       setIsLoading(false)
     }
+  }
+
+  const handleMessagesDeleted = (deletedMessageIds: string[]) => {
+    // Remove deleted messages from local state
+    setMessages(prev => prev.filter(msg => !deletedMessageIds.includes(msg.id)))
+    // Refresh conversation stats
+    setRefreshTrigger(prev => prev + 1)
   }
 
   if (!conversationId && !selectedFolderId) {
@@ -637,7 +701,12 @@ export function ChatArea({
       
       {/* Messages - takes up remaining space */}
       <div className="flex-1 min-h-0">
-        <MessageList messages={messages} isLoading={isLoading || isLoadingMessages} />
+        <MessageList 
+          messages={messages} 
+          isLoading={isLoading || isLoadingMessages} 
+          conversationId={conversationId || undefined}
+          onMessagesDeleted={handleMessagesDeleted}
+        />
       </div>
       
       {/* Input - always at bottom */}

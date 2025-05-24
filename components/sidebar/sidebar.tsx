@@ -67,6 +67,18 @@ export function Sidebar({
     }
   }, [session])
 
+  // Retry loading user settings if session becomes fully available
+  useEffect(() => {
+    if (session?.user?.id && !globalSystemPrompt) {
+      // If we have a user ID but no settings loaded yet, retry
+      const timeoutId = setTimeout(() => {
+        loadUserSettings()
+      }, 1000)
+      
+      return () => clearTimeout(timeoutId)
+    }
+  }, [session?.user?.id, globalSystemPrompt])
+
   const loadFolders = async () => {
     setIsLoadingFolders(true)
     try {
@@ -90,8 +102,12 @@ export function Sidebar({
       if (response.ok) {
         const settings = await response.json()
         setGlobalSystemPrompt(settings.globalSystemPrompt)
+      } else if (response.status === 401) {
+        // User not authenticated yet, silently ignore
+        // This can happen when session is loading
+        console.log("User settings: Authentication pending")
       } else {
-        console.error("Failed to load user settings")
+        console.error("Failed to load user settings:", response.status, response.statusText)
       }
     } catch (error) {
       console.error("Error loading user settings:", error)
@@ -173,7 +189,10 @@ export function Sidebar({
     onConversationUpdated()
   }
 
-
+  const handleConversationRenamed = (conversationId: string, newTitle: string) => {
+    // Trigger conversation list refresh to reflect the rename
+    onConversationUpdated()
+  }
 
   // Filter conversations based on selected folder
   const filteredConversations = selectedFolderId 
@@ -186,7 +205,7 @@ export function Sidebar({
   return (
     <div className={`
       ${isCollapsed ? 'w-16' : 'w-64'} 
-      sidebar-gradient glass-effect border-r border-white/10 flex flex-col h-full relative overflow-hidden transition-all duration-300 ease-in-out
+      chat-area-gradient glass-effect border-r border-white/10 flex flex-col h-full relative overflow-hidden transition-all duration-300 ease-in-out
     `}>
       {/* Animated background particles */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -318,6 +337,7 @@ export function Sidebar({
                 onSelectConversation={onSelectConversation}
                 folders={folders}
                 onConversationMoved={handleConversationMoved}
+                onConversationRenamed={handleConversationRenamed}
                 onConversationDeleted={onConversationDeleted}
                 isLoading={isLoading}
               />

@@ -11,8 +11,6 @@ import {
   Save, 
   X, 
   Settings,
-  ToggleLeft,
-  ToggleRight,
   Link,
   Zap,
   Globe,
@@ -129,8 +127,7 @@ export function ToolManagement() {
         },
         body: JSON.stringify({
           name: tool.name.trim(),
-          description: tool.description?.trim() || null,
-          enabled: tool.enabled
+          description: tool.description?.trim() || null
         })
       })
 
@@ -168,11 +165,6 @@ export function ToolManagement() {
       console.error('Error deleting tool:', error)
       alert('Failed to delete tool. Please try again.')
     }
-  }
-
-  const handleToggleEnabled = async (tool: Tool) => {
-    const updatedTool = { ...tool, enabled: !tool.enabled }
-    await handleUpdateTool(updatedTool)
   }
 
   return (
@@ -431,21 +423,6 @@ export function ToolManagement() {
                         rows={3}
                       />
                     </div>
-                    <div className="flex items-center gap-2">
-                      <label className="text-sm font-medium text-white/80">
-                        Enabled
-                      </label>
-                      <button
-                        onClick={() => setEditingTool(prev => prev ? { ...prev, enabled: !prev.enabled } : null)}
-                        className="flex items-center"
-                      >
-                        {editingTool.enabled ? (
-                          <ToggleRight className="h-6 w-6 text-primary" />
-                        ) : (
-                          <ToggleLeft className="h-6 w-6 text-white/40" />
-                        )}
-                      </button>
-                    </div>
                     <div className="flex gap-2">
                       <Button
                         onClick={() => handleUpdateTool(editingTool)}
@@ -470,15 +447,14 @@ export function ToolManagement() {
                   <div className="flex items-start justify-between">
                     <div className="flex items-start gap-4 flex-1">
                       <div className={`
-                        w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0
-                        ${tool.enabled ? 'bg-primary/20' : 'bg-white/10'}
+                        w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0 bg-white/10
                         ${tool.toolType === 'MCP' ? 'ring-2 ring-blue-500/30' : ''}
                       `}>
-                        <Icon className={`h-6 w-6 ${tool.enabled ? 'text-primary' : 'text-white/40'}`} />
+                        <Icon className="h-6 w-6 text-white/70" />
                       </div>
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-3 mb-2">
-                          <h3 className={`text-lg font-semibold ${tool.enabled ? 'text-white' : 'text-white/60'}`}>
+                          <h3 className="text-lg font-semibold text-white">
                             {tool.name}
                           </h3>
                           {tool.toolType === 'MCP' && (
@@ -486,16 +462,6 @@ export function ToolManagement() {
                               MCP
                             </span>
                           )}
-                          <button
-                            onClick={() => handleToggleEnabled(tool)}
-                            className="flex items-center"
-                          >
-                            {tool.enabled ? (
-                              <ToggleRight className="h-5 w-5 text-primary" />
-                            ) : (
-                              <ToggleLeft className="h-5 w-5 text-white/40" />
-                            )}
-                          </button>
                         </div>
                         {tool.description && (
                           <p className="text-white/70 text-sm mb-2">{tool.description}</p>

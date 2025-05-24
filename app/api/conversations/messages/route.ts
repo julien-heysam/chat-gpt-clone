@@ -4,74 +4,19 @@ import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { estimateTokenCount, calculateCost } from "@/lib/models"
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
     if (!session?.user?.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const { id } = await params
+    const { conversationId, content, role, model, latency, inputTokens, outputTokens, toolCalls } = await request.json()
 
     // Verify the conversation belongs to the user
     const conversation = await prisma.conversation.findFirst({
       where: {
-        id,
-        userId: session.user.id
-      }
-    })
-
-    if (!conversation) {
-      return NextResponse.json({ error: "Conversation not found" }, { status: 404 })
-    }
-
-    // Fetch messages with tool calls
-    const messages = await prisma.message.findMany({
-      where: { conversationId: id },
-      orderBy: { createdAt: 'asc' }
-    })
-
-    // Return messages in the format expected by the frontend
-    const formattedMessages = messages.map(message => ({
-      id: message.id,
-      content: message.content,
-      role: message.role.toLowerCase(),
-      model: message.model,
-      latency: message.latency,
-      inputTokens: message.inputTokens,
-      outputTokens: message.outputTokens,
-      cost: message.cost,
-      createdAt: message.createdAt,
-      toolCalls: message.toolCalls ? JSON.parse(JSON.stringify(message.toolCalls)) : undefined
-    }))
-
-    return NextResponse.json(formattedMessages)
-  } catch (error) {
-    console.error("Error fetching messages:", error)
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
-  }
-}
-
-export async function POST(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-    const session = await getServerSession(authOptions)
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    }
-
-    const { content, role, model, latency, inputTokens, outputTokens } = await request.json()
-    const { id } = await params
-
-    // Verify the conversation belongs to the user
-    const conversation = await prisma.conversation.findFirst({
-      where: {
-        id,
+        id: conversationId,
         userId: session.user.id
       }
     })
@@ -93,7 +38,7 @@ export async function POST(
       if (!finalInputTokens) {
         // Get recent messages to estimate input context
         const recentMessages = await prisma.message.findMany({
-          where: { conversationId: id },
+          where: { conversationId },
           orderBy: { createdAt: 'desc' },
           take: 10 // Last 10 messages for context estimation
         })
@@ -123,21 +68,34 @@ export async function POST(
         ...(finalInputTokens && { inputTokens: finalInputTokens }),
         ...(finalOutputTokens && { outputTokens: finalOutputTokens }),
         ...(cost > 0 && { cost }),
-        conversationId: id
+        ...(toolCalls && { toolCalls }),
+        conversationId
       }
     })
 
     // Update conversation's updatedAt timestamp
     await prisma.conversation.update({
       where: {
-        id
+        id: conversationId
       },
       data: {
         updatedAt: new Date()
       }
     })
 
-    return NextResponse.json(message)
+    // Return message in the format expected by the frontend
+    return NextResponse.json({
+      id: message.id,
+      content: message.content,
+      role: message.role.toLowerCase(),
+      model: message.model,
+      latency: message.latency,
+      inputTokens: message.inputTokens,
+      outputTokens: message.outputTokens,
+      cost: message.cost,
+      createdAt: message.createdAt,
+      toolCalls: message.toolCalls ? JSON.parse(JSON.stringify(message.toolCalls)) : undefined
+    })
   } catch (error) {
     console.error("Error creating message:", error)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })

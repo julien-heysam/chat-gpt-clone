@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { MessageSquare, MoreHorizontal, Zap, FolderInput, Trash2 } from "lucide-react"
+import { MessageSquare, MoreHorizontal, Zap, FolderInput, Trash2, Edit } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { MoveConversation } from "./move-conversation"
 
@@ -28,6 +28,7 @@ interface ConversationListProps {
   folders: FolderItem[]
   onConversationMoved: (conversationId: string, folderId: string | null) => void
   onConversationDeleted?: (conversationId: string) => void
+  onConversationRenamed?: (conversationId: string, newTitle: string) => void
   isLoading?: boolean
 }
 
@@ -38,11 +39,14 @@ export function ConversationList({
   folders,
   onConversationMoved,
   onConversationDeleted,
+  onConversationRenamed,
   isLoading = false
 }: ConversationListProps) {
   const [activeMenu, setActiveMenu] = useState<string | null>(null)
   const [moveConversation, setMoveConversation] = useState<Conversation | null>(null)
   const [deleteConfirmation, setDeleteConfirmation] = useState<Conversation | null>(null)
+  const [renameConversation, setRenameConversation] = useState<Conversation | null>(null)
+  const [newTitle, setNewTitle] = useState("")
 
   const handleMenuClick = (e: React.MouseEvent, conversationId: string) => {
     e.stopPropagation()
@@ -56,11 +60,48 @@ export function ConversationList({
     setActiveMenu(null)
   }
 
+  const handleRenameClick = (conversation: Conversation) => {
+    setRenameConversation(conversation)
+    setNewTitle(conversation.title)
+    setActiveMenu(null)
+  }
+
   const handleDeleteClick = (conversation: Conversation) => {
     console.log('🔴 handleDeleteClick called for:', conversation.id)
     console.log('🔴 Opening delete confirmation modal')
     setDeleteConfirmation(conversation)
     setActiveMenu(null)
+  }
+
+  const handleRenameConfirm = async () => {
+    if (!renameConversation || !newTitle.trim()) return
+    
+    try {
+      const response = await fetch(`/api/conversations/${renameConversation.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ title: newTitle.trim() }),
+      })
+
+      if (response.ok) {
+        onConversationRenamed?.(renameConversation.id, newTitle.trim())
+        setRenameConversation(null)
+        setNewTitle("")
+      } else {
+        const errorData = await response.json()
+        alert(`Failed to rename conversation: ${errorData.error || 'Unknown error'}`)
+      }
+    } catch (error) {
+      console.error('Error renaming conversation:', error)
+      alert('Failed to rename conversation. Please try again.')
+    }
+  }
+
+  const handleRenameCancel = () => {
+    setRenameConversation(null)
+    setNewTitle("")
   }
 
   const handleConfirmDelete = async () => {
@@ -191,6 +232,13 @@ export function ConversationList({
                       <FolderInput className="h-4 w-4" />
                       Move to folder
                     </button>
+                    <button
+                      className="w-full px-3 py-2 text-left text-sm text-white/80 hover:bg-white/10 flex items-center gap-2"
+                      onClick={() => handleRenameClick(conversation)}
+                    >
+                      <Edit className="h-4 w-4" />
+                      Rename
+                    </button>
                     {onConversationDeleted && (
                       <button
                         className="w-full px-3 py-2 text-left text-sm text-red-400 hover:bg-red-500/10 flex items-center gap-2"
@@ -225,6 +273,62 @@ export function ConversationList({
           onMoveSuccess={handleMoveSuccess}
           onClose={() => setMoveConversation(null)}
         />
+      )}
+
+      {/* Rename Conversation Modal */}
+      {renameConversation && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="bg-slate-900 border border-white/20 rounded-lg shadow-xl max-w-md w-full mx-4 p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center">
+                <Edit className="h-5 w-5 text-blue-400" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-white">Rename Conversation</h3>
+                <p className="text-sm text-white/60">Enter a new title for this conversation</p>
+              </div>
+            </div>
+            
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-white/80 mb-2">
+                Conversation Title
+              </label>
+              <input
+                type="text"
+                value={newTitle}
+                onChange={(e) => setNewTitle(e.target.value)}
+                className="w-full px-3 py-2 bg-white/5 border border-white/20 rounded-lg text-white placeholder:text-white/50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                placeholder="Enter conversation title..."
+                autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    handleRenameConfirm()
+                  } else if (e.key === 'Escape') {
+                    handleRenameCancel()
+                  }
+                }}
+              />
+            </div>
+            
+            <div className="flex gap-3 justify-end">
+              <Button
+                variant="outline"
+                onClick={handleRenameCancel}
+                className="border-white/20 text-white/80 hover:bg-white/10"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleRenameConfirm}
+                disabled={!newTitle.trim()}
+                className="bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Edit className="h-4 w-4 mr-2" />
+                Rename
+              </Button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Delete Confirmation Modal */}

@@ -10,15 +10,24 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const tools = await prisma.tool.findMany({
+    // Get tools that are enabled for this user
+    const userTools = await prisma.userTool.findMany({
       where: {
+        userId: session.user.id,
         enabled: true
       },
+      include: {
+        tool: true
+      },
       orderBy: {
-        name: 'asc'
+        tool: {
+          name: 'asc'
+        }
       }
     })
 
+    // Return just the tools
+    const tools = userTools.map(ut => ut.tool)
     return NextResponse.json(tools)
   } catch (error) {
     console.error("Error fetching tools:", error)
@@ -60,7 +69,6 @@ export async function POST(request: NextRequest) {
     const toolData: any = {
       name: name.trim(),
       description: description?.trim() || null,
-      enabled: true,
       toolType
     }
 

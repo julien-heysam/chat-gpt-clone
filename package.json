@@ -7,8 +7,13 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "postinstall": "prisma generate",
-    "import-mcp": "npx tsx prisma/add-mcp-servers.ts"
+    "db:seed": "npx tsx prisma/seed.ts",
+    "db:migrate": "npx prisma migrate dev",
+    "db:generate": "npx prisma generate",
+    "db:studio": "npx prisma studio",
+    "db:reset": "npx prisma migrate reset",
+    "mcp:import": "npx tsx prisma/add-mcp-servers.ts",
+    "mcp:update": "npx tsx prisma/add-mcp-servers.ts"
   },
   "prisma": {
     "seed": "npx tsx prisma/seed.ts"
