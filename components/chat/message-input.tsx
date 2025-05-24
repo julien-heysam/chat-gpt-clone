@@ -124,8 +124,8 @@ export function MessageInput({
   }
 
   return (
-    <div className="border-t border-white/10 bg-black/20 backdrop-blur-sm">
-      <div className="max-w-4xl mx-auto p-4">
+    <div className="border-t border-white/10 relative z-20">
+      <div className="max-w-4xl mx-auto p-6">
         {/* Controls row */}
         <div className="flex items-center gap-2 mb-3">
           {/* Add button */}
@@ -157,7 +157,7 @@ export function MessageInput({
             </DropdownMenuTrigger>
             <DropdownMenuContent 
               align="start" 
-              className="bg-black/90 border-white/20 backdrop-blur-sm w-80"
+              className="bg-white/5 border-white/10 backdrop-blur-sm w-80"
             >
               {models.map((model) => (
                 <DropdownMenuItem
@@ -225,28 +225,30 @@ export function MessageInput({
         {/* Input area */}
         <div className="flex items-end gap-3">
           <div className="flex-1 relative">
-            <Textarea
-              ref={textareaRef}
-              value={message}
-              onChange={handleTextareaChange}
-              onKeyDown={handleKeyDown}
-              placeholder="Type your message here..."
-              disabled={disabled}
-              className="min-h-[52px] max-h-[120px] resize-none pr-12 bg-white/5 border-white/20 text-white placeholder:text-white/50 focus:border-primary focus:ring-1 focus:ring-primary/50 rounded-xl transition-colors"
-              rows={1}
-            />
-            <Button
-              onClick={handleSend}
-              disabled={!message.trim() || disabled}
-              size="sm"
-              className={`absolute right-2 bottom-2 h-8 w-8 p-0 transition-all ${
-                message.trim() && !disabled
-                  ? 'bg-primary hover:bg-primary/90 text-white'
-                  : 'bg-white/10 text-white/50 hover:bg-white/20'
-              }`}
-            >
-              <Send className="h-4 w-4" />
-            </Button>
+            <div className="bg-white/5 backdrop-blur-sm border border-white/10 rounded-2xl p-1">
+              <Textarea
+                ref={textareaRef}
+                value={message}
+                onChange={handleTextareaChange}
+                onKeyDown={handleKeyDown}
+                placeholder="Type your message here..."
+                disabled={disabled}
+                className="min-h-[52px] max-h-[120px] resize-none pr-12 bg-transparent border-none text-white placeholder:text-white/50 focus:outline-none focus:ring-0 rounded-xl p-4"
+                rows={1}
+              />
+              <Button
+                onClick={handleSend}
+                disabled={!message.trim() || disabled}
+                size="sm"
+                className={`absolute right-3 bottom-3 h-10 w-10 p-0 rounded-full transition-all transform hover:scale-110 ${
+                  message.trim() && !disabled
+                    ? 'modern-button text-white shadow-lg'
+                    : 'bg-white/10 text-white/50 hover:bg-white/20'
+                }`}
+              >
+                <Send className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
         </div>
         

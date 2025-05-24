@@ -209,7 +209,7 @@ export function Sidebar({
           onClick={onToggleCollapse}
           variant="outline"
           size="sm"
-          className="h-6 w-6 p-0 rounded-full bg-slate-900 border-white/20 hover:bg-slate-800 shadow-lg"
+          className="h-6 w-6 p-0 rounded-full bg-gradient-to-r from-purple-600/90 to-blue-600/90 border-white/30 hover:from-purple-500/90 hover:to-blue-500/90 shadow-lg backdrop-blur-sm hover:shadow-purple-500/50 transition-all duration-300"
         >
           {isCollapsed ? (
             <ChevronRight className="h-3 w-3 text-white" />

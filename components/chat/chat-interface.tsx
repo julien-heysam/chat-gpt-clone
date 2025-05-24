@@ -213,17 +213,19 @@ export function ChatInterface() {
         />
       </div>
       
-      <ChatArea 
-        conversationId={selectedConversationId} 
-        selectedFolderId={selectedFolderId}
-        folderName={selectedFolder?.name}
-        systemPrompt={selectedFolder?.systemPrompt}
-        globalSystemPrompt={globalSystemPrompt}
-        onCreateConversation={createNewConversation}
-        onUpdateTitle={updateConversationTitle}
-        isSidebarCollapsed={isSidebarCollapsed}
-        onToggleSidebar={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-      />
+      <div className="flex-1 chat-area-gradient h-full">
+        <ChatArea 
+          conversationId={selectedConversationId} 
+          selectedFolderId={selectedFolderId}
+          folderName={selectedFolder?.name}
+          systemPrompt={selectedFolder?.systemPrompt}
+          globalSystemPrompt={globalSystemPrompt}
+          onCreateConversation={createNewConversation}
+          onUpdateTitle={updateConversationTitle}
+          isSidebarCollapsed={isSidebarCollapsed}
+          onToggleSidebar={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+        />
+      </div>
     </div>
   )
 } 

@@ -39,7 +39,7 @@ function CodeBlock({ children, className, ...props }: any) {
   if (language) {
     return (
       <div className="relative group my-4">
-        <div className="flex items-center justify-between bg-zinc-800 px-4 py-2 text-sm text-zinc-400 rounded-t-lg border border-zinc-700">
+        <div className="flex items-center justify-between bg-white/10 px-4 py-2 text-sm text-white/60 rounded-t-lg border border-white/20">
           <span>{language}</span>
           <button
             onClick={copyToClipboard}
@@ -58,7 +58,7 @@ function CodeBlock({ children, className, ...props }: any) {
             margin: 0,
             borderTopLeftRadius: 0,
             borderTopRightRadius: 0,
-            border: '1px solid rgb(63 63 70)',
+            border: '1px solid rgba(255, 255, 255, 0.2)',
             borderTop: 'none'
           }}
         >
@@ -69,7 +69,7 @@ function CodeBlock({ children, className, ...props }: any) {
   }
 
   return (
-    <code className="bg-zinc-800 text-primary px-1.5 py-0.5 rounded text-sm font-mono border border-zinc-700" {...props}>
+    <code className="bg-white/10 text-primary px-1.5 py-0.5 rounded text-sm font-mono border border-white/20" {...props}>
       {children}
     </code>
   )
@@ -101,7 +101,7 @@ export function MessageList({ messages, isLoading }: MessageListProps) {
     strong: ({ children }: any) => <strong className="font-semibold text-white">{children}</strong>,
     em: ({ children }: any) => <em className="italic text-white/90">{children}</em>,
     code: ({ children }: any) => (
-      <code className="bg-zinc-800 text-primary px-1 py-0.5 rounded text-xs font-mono">{children}</code>
+      <code className="bg-white/10 text-primary px-1 py-0.5 rounded text-xs font-mono">{children}</code>
     ),
     // Prevent nested tables and other block elements
     p: ({ children }: any) => <span>{children}</span>,
@@ -116,8 +116,8 @@ export function MessageList({ messages, isLoading }: MessageListProps) {
   const markdownComponents = {
     code: CodeBlock,
     pre: ({ children }: any) => <div className="overflow-hidden rounded-lg">{children}</div>,
-    h1: ({ children }: any) => <h1 className="text-2xl font-bold mb-4 text-white border-b border-zinc-700 pb-2">{children}</h1>,
-    h2: ({ children }: any) => <h2 className="text-xl font-bold mb-3 text-white border-b border-zinc-700 pb-1">{children}</h2>,
+    h1: ({ children }: any) => <h1 className="text-2xl font-bold mb-4 text-white border-b border-white/20 pb-2">{children}</h1>,
+    h2: ({ children }: any) => <h2 className="text-xl font-bold mb-3 text-white border-b border-white/20 pb-1">{children}</h2>,
     h3: ({ children }: any) => <h3 className="text-lg font-semibold mb-2 text-white">{children}</h3>,
     p: ({ children }: any) => <p className="mb-3 text-white/90 leading-relaxed">{children}</p>,
     ul: ({ children }: any) => <ul className="mb-3 ml-4 space-y-1">{children}</ul>,
@@ -136,17 +136,17 @@ export function MessageList({ messages, isLoading }: MessageListProps) {
       </a>
     ),
     table: ({ children }: any) => (
-      <div className="overflow-x-auto my-4 rounded-lg border border-zinc-700 bg-zinc-900/30">
-        <table className="min-w-full divide-y divide-zinc-700">
+      <div className="overflow-x-auto my-4 rounded-lg border border-white/20 bg-white/5">
+        <table className="min-w-full divide-y divide-white/20">
           {children}
         </table>
       </div>
     ),
-    thead: ({ children }: any) => <thead className="bg-zinc-800/80">{children}</thead>,
-    tbody: ({ children }: any) => <tbody className="bg-zinc-900/20 divide-y divide-zinc-700/50">{children}</tbody>,
-    tr: ({ children }: any) => <tr className="hover:bg-zinc-800/30 transition-colors">{children}</tr>,
+    thead: ({ children }: any) => <thead className="bg-white/10">{children}</thead>,
+    tbody: ({ children }: any) => <tbody className="bg-white/5 divide-y divide-white/10">{children}</tbody>,
+    tr: ({ children }: any) => <tr className="hover:bg-white/10 transition-colors">{children}</tr>,
     th: ({ children }: any) => (
-      <th className="px-4 py-3 text-left text-xs font-medium text-zinc-300 uppercase tracking-wider border-b border-zinc-700 align-top">
+              <th className="px-4 py-3 text-left text-xs font-medium text-white/60 uppercase tracking-wider border-b border-white/20 align-top">
         <ReactMarkdown components={tableCellComponents} className="inline leading-relaxed">
           {children}
         </ReactMarkdown>
@@ -159,11 +159,11 @@ export function MessageList({ messages, isLoading }: MessageListProps) {
         </ReactMarkdown>
       </td>
     ),
-    hr: () => <hr className="my-6 border-zinc-700" />,
+    hr: () => <hr className="my-6 border-white/20" />,
   }
 
   return (
-    <div className="flex-1 overflow-y-auto p-4 space-y-4">
+    <div className="h-full overflow-y-auto p-4 space-y-4">
       <div className="max-w-4xl mx-auto space-y-4">
         {messages.map((message) => (
           <div
@@ -181,8 +181,8 @@ export function MessageList({ messages, isLoading }: MessageListProps) {
             <div
               className={`max-w-[85%] rounded-xl p-4 ${
                 message.role === "user"
-                  ? "bg-primary text-white ml-auto"
-                  : "bg-zinc-900/50 text-white border border-zinc-700/50 backdrop-blur-sm"
+                  ? "bg-gradient-to-r from-purple-600/90 to-blue-600/90 text-white ml-auto shadow-lg border border-white/20 backdrop-blur-sm"
+                  : "bg-white/5 backdrop-blur-sm text-white border border-white/10 shadow-lg"
               }`}
             >
               {message.role === "assistant" ? (
@@ -232,22 +232,22 @@ export function MessageList({ messages, isLoading }: MessageListProps) {
                   {message.role === "assistant" && (
                     <div className="flex items-center gap-2">
                       {message.model && (
-                        <span className="text-xs text-primary/80 bg-primary/10 px-2 py-0.5 rounded-full border border-primary/20">
+                        <span className="text-xs text-purple-300 bg-gradient-to-r from-purple-500/20 to-pink-500/20 px-3 py-1 rounded-full border border-purple-400/40 font-medium shadow-lg backdrop-blur-sm">
                           {message.model}
                         </span>
                       )}
                       {message.latency && (
-                        <div className="flex items-center gap-1">
-                          <Clock className="h-3 w-3 text-white/40" />
-                          <span className="text-xs text-white/40">
+                        <div className="flex items-center gap-1 bg-gradient-to-r from-blue-500/20 to-cyan-500/20 px-2 py-1 rounded-full border border-blue-400/40">
+                          <Clock className="h-3 w-3 text-blue-300" />
+                          <span className="text-xs text-blue-300 font-medium">
                             {message.latency}ms
                           </span>
                         </div>
                       )}
                       {message.cost !== undefined && message.cost > 0 && (
-                        <div className="flex items-center gap-1">
-                          <DollarSign className="h-3 w-3 text-white/40" />
-                          <span className="text-xs text-white/40">
+                        <div className="flex items-center gap-1 bg-gradient-to-r from-emerald-500/20 to-green-500/20 px-2 py-1 rounded-full border border-emerald-400/40">
+                          <DollarSign className="h-3 w-3 text-emerald-300" />
+                          <span className="text-xs text-emerald-300 font-medium">
                             {formatCost(message.cost)}
                           </span>
                         </div>
@@ -271,7 +271,7 @@ export function MessageList({ messages, isLoading }: MessageListProps) {
             <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0 mt-1">
               <Bot className="h-4 w-4 text-primary animate-pulse" />
             </div>
-            <div className="bg-zinc-900/50 border border-zinc-700/50 backdrop-blur-sm rounded-xl p-4">
+            <div className="bg-white/5 border border-white/10 backdrop-blur-sm rounded-xl p-4">
               <div className="flex items-center space-x-2">
                 <Sparkles className="h-4 w-4 text-white/70 animate-pulse" />
                 <div className="flex space-x-1">

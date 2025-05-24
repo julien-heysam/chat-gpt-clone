@@ -407,7 +407,7 @@ export function ChatArea({
 
   if (!conversationId && !selectedFolderId) {
     return (
-      <div className="flex-1 flex flex-col relative overflow-hidden">
+      <div className="h-full flex flex-col relative overflow-hidden">
         {/* Mobile hamburger button */}
         {isSidebarCollapsed && onToggleSidebar && (
           <div className="absolute top-4 left-4 z-10 md:hidden">
@@ -415,26 +415,46 @@ export function ChatArea({
               onClick={onToggleSidebar}
               variant="outline"
               size="sm"
-              className="h-10 w-10 p-0 bg-slate-900/80 border-white/20 hover:bg-slate-800"
+              className="h-10 w-10 p-0 bg-gradient-to-r from-purple-600/90 to-blue-600/90 border-white/30 hover:from-purple-500/90 hover:to-blue-500/90 shadow-lg backdrop-blur-sm"
             >
               <Menu className="h-4 w-4 text-white" />
             </Button>
           </div>
         )}
         
-        <div className="flex-1 flex items-center justify-center">
-          <div className="text-center max-w-2xl mx-auto p-8">
-            <div className="w-16 h-16 mx-auto mb-6 rounded-full bg-primary/20 flex items-center justify-center">
-              <Sparkles className="h-8 w-8 text-primary" />
+        <div className="flex-1 flex items-center justify-center relative">
+          {/* Background elements */}
+          <div className="absolute inset-0 overflow-hidden">
+            <div className="absolute top-1/4 left-1/3 w-64 h-64 rounded-full bg-gradient-to-r from-purple-500/10 to-blue-500/10 blur-3xl animate-pulse" />
+            <div className="absolute bottom-1/3 right-1/4 w-48 h-48 rounded-full bg-gradient-to-r from-pink-500/10 to-cyan-500/10 blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
+          </div>
+          
+          <div className="text-center max-w-3xl mx-auto p-8 relative z-10">
+            {/* Enhanced icon with glass effect */}
+            <div className="relative w-24 h-24 mx-auto mb-8">
+              <div className="absolute inset-0 rounded-full glass-effect-strong animate-pulse">
+                <div className="w-full h-full rounded-full holographic flex items-center justify-center">
+                  <Sparkles className="h-12 w-12 text-white animate-pulse" />
+                </div>
+              </div>
+              <div className="absolute -inset-4 rounded-full border border-white/20 animate-ping" style={{ animationDuration: '3s' }} />
             </div>
-            <h2 className="text-3xl font-bold mb-4 text-white">
-              Welcome to Neural Chat
+            
+            {/* Enhanced title with gradient */}
+            <h1 className="text-5xl md:text-6xl font-bold mb-6 text-transparent bg-clip-text bg-gradient-to-r from-white via-purple-300 to-blue-300 animate-pulse">
+              Neural Chat
+            </h1>
+            <h2 className="text-xl md:text-2xl font-light mb-8 text-white/80">
+              Sites beyond imagination, one prompt away.
             </h2>
-            <p className="text-white/70 text-lg mb-8 leading-relaxed">
+            
+            <p className="text-white/60 text-lg mb-12 leading-relaxed max-w-2xl mx-auto">
               Experience the future of AI conversation. Start typing to begin your journey into 
               intelligent dialogue powered by advanced neural networks.
             </p>
-            <div className="flex flex-wrap justify-center gap-3 mb-8">
+            
+            {/* Enhanced suggestion pills */}
+            <div className="flex flex-wrap justify-center gap-4 mb-12">
               {[
                 "Ask me anything",
                 "Creative writing", 
@@ -443,11 +463,19 @@ export function ChatArea({
               ].map((suggestion, i) => (
                 <div
                   key={i}
-                  className="px-4 py-2 bg-white/5 border border-white/20 rounded-full text-sm text-white/80 hover:border-primary/50 hover:bg-white/10 transition-colors cursor-pointer"
+                  className="modern-button px-6 py-3 rounded-full text-sm text-white/90 hover:text-white font-medium cursor-pointer transform hover:scale-105 transition-all duration-300"
                 >
                   {suggestion}
                 </div>
               ))}
+            </div>
+            
+            {/* Call to action */}
+            <div className="glass-effect-strong rounded-2xl p-6 max-w-md mx-auto">
+              <p className="text-white/70 text-sm mb-3">Ready to start?</p>
+              <div className="text-xs text-white/50">
+                Type your message below to begin your AI conversation
+              </div>
             </div>
           </div>
         </div>
@@ -473,7 +501,7 @@ export function ChatArea({
     const activePrompt = systemPrompt || globalSystemPrompt
 
     return (
-      <div className="flex-1 flex flex-col relative overflow-hidden">
+      <div className="h-full flex flex-col relative overflow-hidden">
         {/* Mobile hamburger button */}
         {isSidebarCollapsed && onToggleSidebar && (
           <div className="absolute top-4 left-4 z-10 md:hidden">
@@ -481,7 +509,7 @@ export function ChatArea({
               onClick={onToggleSidebar}
               variant="outline"
               size="sm"
-              className="h-10 w-10 p-0 bg-slate-900/80 border-white/20 hover:bg-slate-800"
+              className="h-10 w-10 p-0 bg-gradient-to-r from-purple-600/90 to-blue-600/90 border-white/30 hover:from-purple-500/90 hover:to-blue-500/90 shadow-lg backdrop-blur-sm"
             >
               <Menu className="h-4 w-4 text-white" />
             </Button>
@@ -588,7 +616,7 @@ export function ChatArea({
   }
 
   return (
-    <div className="flex-1 flex flex-col relative">
+    <div className="h-full flex flex-col">
       {/* Mobile hamburger button */}
       {isSidebarCollapsed && onToggleSidebar && (
         <div className="absolute top-4 left-4 z-10 md:hidden">
@@ -596,30 +624,38 @@ export function ChatArea({
             onClick={onToggleSidebar}
             variant="outline"
             size="sm"
-            className="h-10 w-10 p-0 bg-slate-900/80 border-white/20 hover:bg-slate-800"
+            className="h-10 w-10 p-0 bg-gradient-to-r from-purple-600/90 to-blue-600/90 border-white/30 hover:from-purple-500/90 hover:to-blue-500/90 shadow-lg backdrop-blur-sm"
           >
             <Menu className="h-4 w-4 text-white" />
           </Button>
         </div>
       )}
       
+      {/* Header */}
       {conversationId && <ChatHeader conversationId={conversationId} refreshTrigger={refreshTrigger} selectedModel={selectedModel} currentContextSize={currentContextSize} />}
       
-      <MessageList messages={messages} isLoading={isLoading || isLoadingMessages} />
-      <MessageInput 
-        onSendMessage={handleSendMessage} 
-        selectedModel={selectedModel} 
-        onModelChange={setSelectedModel} 
-        value={currentInput}
-        onInputChange={handleInputChange}
-        disabled={isLoading}
-        temperature={localTemperature}
-        maxTokens={localMaxTokens}
-        onTemperatureChange={setLocalTemperature}
-        onMaxTokensChange={setLocalMaxTokens}
-        selectedTools={selectedTools}
-        onToolsChange={setSelectedTools}
-      />
+      {/* Messages - takes up remaining space */}
+      <div className="flex-1 min-h-0">
+        <MessageList messages={messages} isLoading={isLoading || isLoadingMessages} />
+      </div>
+      
+      {/* Input - always at bottom */}
+      <div className="flex-shrink-0">
+        <MessageInput 
+          onSendMessage={handleSendMessage} 
+          selectedModel={selectedModel} 
+          onModelChange={setSelectedModel} 
+          value={currentInput}
+          onInputChange={handleInputChange}
+          disabled={isLoading}
+          temperature={localTemperature}
+          maxTokens={localMaxTokens}
+          onTemperatureChange={setLocalTemperature}
+          onMaxTokensChange={setLocalMaxTokens}
+          selectedTools={selectedTools}
+          onToolsChange={setSelectedTools}
+        />
+      </div>
     </div>
   )
 } 
