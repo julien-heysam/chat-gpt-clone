@@ -273,7 +273,8 @@ export function ChatArea({
               stream: true,
               temperature: localTemperature,
               maxTokens: localMaxTokens,
-              tools: tools.length > 0 ? tools : undefined
+              tools: tools.length > 0 ? tools : undefined,
+              conversationId: currentConversationId
             }),
           })
 

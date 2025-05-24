@@ -66,7 +66,7 @@ export function ToolPicker({ isOpen, onClose, onToolSelect, selectedTools }: Too
       />
       
       {/* Tool Picker Panel */}
-      <div className="fixed bottom-20 left-4 right-4 md:left-auto md:right-auto md:bottom-24 md:w-96 bg-slate-900 border border-white/20 rounded-lg shadow-xl z-50 max-h-96 overflow-hidden">
+      <div className="fixed bottom-20 left-4 right-4 md:left-auto md:right-auto md:bottom-24 md:w-96 bg-slate-900 border border-white/20 rounded-lg shadow-xl z-50 max-h-[600px] overflow-hidden">
         <div className="p-4 border-b border-white/10">
           <div className="flex items-center justify-between mb-3">
             <h3 className="text-lg font-semibold text-white flex items-center gap-2">
@@ -115,7 +115,7 @@ export function ToolPicker({ isOpen, onClose, onToolSelect, selectedTools }: Too
           </div>
         </div>
 
-        <div className="p-2 max-h-80 overflow-y-auto">
+        <div className="p-2 max-h-[400px] overflow-y-auto scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent">
           {isLoading ? (
             <div className="flex items-center justify-center py-8">
               <div className="animate-pulse text-white/60">Loading tools...</div>
