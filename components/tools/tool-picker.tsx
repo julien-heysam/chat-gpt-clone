@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
-import { Plus, X } from "lucide-react"
+import { Plus, X, Filter, Zap, Cog } from "lucide-react"
 import { Tool, getToolIcon } from "@/lib/tools"
 
 interface ToolPickerProps {
@@ -15,6 +15,7 @@ interface ToolPickerProps {
 export function ToolPicker({ isOpen, onClose, onToolSelect, selectedTools }: ToolPickerProps) {
   const [tools, setTools] = useState<Tool[]>([])
   const [isLoading, setIsLoading] = useState(false)
+  const [filter, setFilter] = useState<'ALL' | 'BUILTIN' | 'MCP'>('ALL')
 
   useEffect(() => {
     if (isOpen) {
@@ -47,6 +48,13 @@ export function ToolPicker({ isOpen, onClose, onToolSelect, selectedTools }: Too
     onToolSelect(tool)
   }
 
+  const filteredTools = tools.filter(tool => {
+    if (filter === 'ALL') return tool.enabled
+    if (filter === 'BUILTIN') return tool.enabled && tool.toolType === 'BUILTIN'
+    if (filter === 'MCP') return tool.enabled && tool.toolType === 'MCP'
+    return true
+  })
+
   if (!isOpen) return null
 
   return (
@@ -59,19 +67,52 @@ export function ToolPicker({ isOpen, onClose, onToolSelect, selectedTools }: Too
       
       {/* Tool Picker Panel */}
       <div className="fixed bottom-20 left-4 right-4 md:left-auto md:right-auto md:bottom-24 md:w-96 bg-slate-900 border border-white/20 rounded-lg shadow-xl z-50 max-h-96 overflow-hidden">
-        <div className="flex items-center justify-between p-4 border-b border-white/10">
-          <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-            <Plus className="h-5 w-5 text-primary" />
-            Select Tools
-          </h3>
-          <Button
-            onClick={onClose}
-            variant="ghost"
-            size="sm"
-            className="h-8 w-8 p-0 text-white/60 hover:text-white"
-          >
-            <X className="h-4 w-4" />
-          </Button>
+        <div className="p-4 border-b border-white/10">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+              <Plus className="h-5 w-5 text-primary" />
+              Select Tools
+            </h3>
+            <Button
+              onClick={onClose}
+              variant="ghost"
+              size="sm"
+              className="h-8 w-8 p-0 text-white/60 hover:text-white"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+          
+          {/* Filter buttons */}
+          <div className="flex gap-1">
+            <Button
+              onClick={() => setFilter('ALL')}
+              variant={filter === 'ALL' ? 'secondary' : 'ghost'}
+              size="sm"
+              className="h-7 px-3 text-xs"
+            >
+              <Filter className="h-3 w-3 mr-1" />
+              All
+            </Button>
+            <Button
+              onClick={() => setFilter('BUILTIN')}
+              variant={filter === 'BUILTIN' ? 'secondary' : 'ghost'}
+              size="sm"
+              className="h-7 px-3 text-xs"
+            >
+              <Zap className="h-3 w-3 mr-1" />
+              Built-in
+            </Button>
+            <Button
+              onClick={() => setFilter('MCP')}
+              variant={filter === 'MCP' ? 'secondary' : 'ghost'}
+              size="sm"
+              className="h-7 px-3 text-xs"
+            >
+              <Cog className="h-3 w-3 mr-1" />
+              MCP
+            </Button>
+          </div>
         </div>
 
         <div className="p-2 max-h-80 overflow-y-auto">
@@ -79,13 +120,13 @@ export function ToolPicker({ isOpen, onClose, onToolSelect, selectedTools }: Too
             <div className="flex items-center justify-center py-8">
               <div className="animate-pulse text-white/60">Loading tools...</div>
             </div>
-          ) : tools.length === 0 ? (
+          ) : filteredTools.length === 0 ? (
             <div className="text-center py-8 text-white/60">
-              No tools available
+              {filter === 'ALL' ? 'No enabled tools available' : `No enabled ${filter.toLowerCase()} tools available`}
             </div>
           ) : (
             <div className="space-y-1">
-              {tools.map((tool) => {
+              {filteredTools.map((tool) => {
                 const Icon = getToolIcon(tool.name, tool.toolType)
                 const selected = isToolSelected(tool)
                 
@@ -109,11 +150,18 @@ export function ToolPicker({ isOpen, onClose, onToolSelect, selectedTools }: Too
                         <Icon className={`h-4 w-4 ${selected ? 'text-primary' : 'text-white/60'}`} />
                       </div>
                       <div className="min-w-0 flex-1">
-                        <div className={`font-medium text-sm ${selected ? 'text-primary' : 'text-white'}`}>
-                          {tool.name}
+                        <div className="flex items-center gap-2 mb-1">
+                          <div className={`font-medium text-sm ${selected ? 'text-primary' : 'text-white'}`}>
+                            {tool.name}
+                          </div>
+                          {tool.toolType === 'MCP' && (
+                            <span className="text-xs bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded-full">
+                              MCP
+                            </span>
+                          )}
                         </div>
                         {tool.description && (
-                          <div className="text-xs text-white/60 mt-1 line-clamp-2">
+                          <div className="text-xs text-white/60 line-clamp-2">
                             {tool.description}
                           </div>
                         )}

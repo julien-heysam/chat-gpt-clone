@@ -228,10 +228,10 @@ export function MessageList({ messages, isLoading }: MessageListProps) {
             )}
             
             <div
-              className={`max-w-[85%] rounded-xl p-4 ${
+              className={`rounded-xl p-4 ${
                 message.role === "user"
-                  ? "bg-gradient-to-r from-purple-600/90 to-blue-600/90 text-white ml-auto shadow-lg border border-white/20 backdrop-blur-sm"
-                  : "bg-white/5 backdrop-blur-sm text-white border border-white/10 shadow-lg"
+                  ? "max-w-[85%] bg-gradient-to-r from-purple-500/60 to-blue-500/60 text-white ml-auto shadow-md border border-white/15 backdrop-blur-sm"
+                  : "w-full bg-white/5 backdrop-blur-sm text-white border border-white/10 shadow-lg"
               }`}
             >
               {message.role === "assistant" ? (
@@ -248,36 +248,35 @@ export function MessageList({ messages, isLoading }: MessageListProps) {
               
               {/* Combined footer section */}
               <div className="text-xs text-white/50 mt-3 border-t border-white/10 pt-2">
-                {/* Copy button for assistant messages */}
-                {message.role === "assistant" && (
-                  <div className="mb-2">
-                    <button
-                      onClick={() => copyMessageContent(message.content, message.id)}
-                      className="flex items-center gap-2 text-xs text-white/60 hover:text-white/80 transition-colors group"
-                    >
-                      {copiedMessageId === message.id ? (
-                        <>
-                          <Check className="h-3 w-3 text-green-400" />
-                          <span className="text-green-400">Copied!</span>
-                        </>
-                      ) : (
-                        <>
-                          <Copy className="h-3 w-3 group-hover:text-white/80" />
-                          <span>Copy message</span>
-                        </>
-                      )}
-                    </button>
-                  </div>
-                )}
-                
                 {/* Metadata row */}
                 <div className="flex items-center justify-between">
-                  <span>
-                    {new Date(message.createdAt).toLocaleTimeString([], { 
-                      hour: '2-digit', 
-                      minute: '2-digit' 
-                    })}
-                  </span>
+                  <div className="flex items-center gap-3">
+                    <span>
+                      {new Date(message.createdAt).toLocaleTimeString([], { 
+                        hour: '2-digit', 
+                        minute: '2-digit' 
+                      })}
+                    </span>
+                    {/* Copy button for assistant messages */}
+                    {message.role === "assistant" && (
+                      <button
+                        onClick={() => copyMessageContent(message.content, message.id)}
+                        className="flex items-center gap-1 text-xs text-white/60 hover:text-white/80 transition-colors group"
+                      >
+                        {copiedMessageId === message.id ? (
+                          <>
+                            <Check className="h-3 w-3 text-green-400" />
+                            <span className="text-green-400">Copied!</span>
+                          </>
+                        ) : (
+                          <>
+                            <Copy className="h-3 w-3 group-hover:text-white/80" />
+                            <span>Copy message</span>
+                          </>
+                        )}
+                      </button>
+                    )}
+                  </div>
                   {message.role === "assistant" && (
                     <div className="flex items-center gap-2">
                       {message.model && (

@@ -15,7 +15,8 @@ import {
   ToggleRight,
   Link,
   Zap,
-  Globe
+  Globe,
+  BookOpen
 } from "lucide-react"
 import {
   Select,
@@ -177,10 +178,23 @@ export function ToolManagement() {
   return (
     <div className="max-w-6xl mx-auto p-6">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-white mb-2">Tool Management</h1>
-        <p className="text-white/70">
-          Manage AI tools available for conversations. Create built-in tools or connect external tools via MCP (Model Context Protocol).
-        </p>
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <h1 className="text-3xl font-bold text-white mb-2">Tool Management</h1>
+            <p className="text-white/70">
+              Manage AI tools available for conversations. Create built-in tools or connect external tools via MCP (Model Context Protocol).
+            </p>
+          </div>
+          <div>
+            <a 
+              href="/tools/docs" 
+              className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600/20 hover:bg-blue-600/30 border border-blue-500/30 rounded-lg text-blue-300 hover:text-blue-200 transition-colors"
+            >
+              <BookOpen className="h-4 w-4" />
+              MCP Documentation
+            </a>
+          </div>
+        </div>
       </div>
 
       {/* Create New Tool */}

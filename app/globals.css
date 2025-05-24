@@ -193,9 +193,9 @@
   
   .sidebar-gradient {
     background: linear-gradient(180deg, 
-      rgba(15, 15, 35, 0.85) 0%, 
-      rgba(26, 26, 46, 0.80) 50%, 
-      rgba(22, 33, 62, 0.85) 100%);
+      rgba(60, 30, 100, 0.85) 0%, 
+      rgba(45, 25, 80, 0.80) 50%, 
+      rgba(50, 30, 110, 0.85) 100%);
     backdrop-filter: blur(20px);
   }
   
