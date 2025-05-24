@@ -163,8 +163,57 @@ export function MessageList({ messages, isLoading }: MessageListProps) {
   }
 
   return (
-    <div className="h-full overflow-y-auto p-4 space-y-4">
-      <div className="max-w-4xl mx-auto space-y-4">
+    <div className="h-full overflow-y-auto p-4 space-y-4 relative">
+      {/* Animated background effects */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        {/* Shooting stars */}
+        <div className="shooting-star shooting-star-1"></div>
+        <div className="shooting-star shooting-star-2"></div>
+        <div className="shooting-star shooting-star-3"></div>
+        <div className="shooting-star shooting-star-4"></div>
+        <div className="shooting-star shooting-star-5"></div>
+        
+        {/* Floating orbs */}
+        <div className="floating-orb floating-orb-1"></div>
+        <div className="floating-orb floating-orb-2"></div>
+        <div className="floating-orb floating-orb-3"></div>
+        
+        {/* Morphing blobs */}
+        <div className="morphing-blob" style={{
+          width: '200px',
+          height: '200px',
+          top: '10%',
+          left: '80%',
+          animationDelay: '0s'
+        }}></div>
+        <div className="morphing-blob" style={{
+          width: '150px',
+          height: '150px',
+          bottom: '20%',
+          left: '10%',
+          animationDelay: '-10s'
+        }}></div>
+        
+        {/* Particle system */}
+        {[...Array(12)].map((_, i) => (
+          <div
+            key={i}
+            className="particle"
+            style={{
+              left: `${Math.random() * 100}%`,
+              animationDelay: `${i * 1.5}s`,
+              animationDuration: `${20 + Math.random() * 10}s`
+            }}
+          />
+        ))}
+        
+        {/* Glowing gradients */}
+        <div className="absolute top-1/4 left-1/3 w-64 h-64 rounded-full bg-gradient-to-r from-purple-500/10 to-blue-500/10 blur-3xl animate-pulse"></div>
+        <div className="absolute bottom-1/3 right-1/4 w-48 h-48 rounded-full bg-gradient-to-r from-pink-500/10 to-cyan-500/10 blur-3xl animate-pulse" style={{ animationDelay: '1s' }}></div>
+        <div className="absolute top-2/3 left-1/6 w-32 h-32 rounded-full bg-gradient-to-r from-green-500/10 to-purple-500/10 blur-2xl animate-pulse" style={{ animationDelay: '2s' }}></div>
+      </div>
+      
+      <div className="max-w-4xl mx-auto space-y-4 relative z-10">
         {messages.map((message) => (
           <div
             key={message.id}

@@ -202,9 +202,11 @@
   
   .chat-area-gradient {
     background: linear-gradient(135deg, 
-      rgba(15, 15, 35, 0.45) 0%, 
-      rgba(26, 26, 46, 0.35) 50%, 
-      rgba(22, 33, 62, 0.45) 100%);
+      rgba(75, 35, 120, 0.4) 0%, 
+      rgba(45, 25, 80, 0.3) 25%,
+      rgba(25, 35, 90, 0.35) 50%, 
+      rgba(35, 45, 100, 0.4) 75%,
+      rgba(50, 30, 110, 0.45) 100%);
     backdrop-filter: blur(15px);
     border-left: 1px solid rgba(255, 255, 255, 0.05);
   }
