@@ -1,12 +1,13 @@
 "use client"
 
 import { useEffect, useRef } from "react"
-import { User, Bot, Sparkles, Clock, Copy, Check, DollarSign, Trash2, Wrench, Terminal } from "lucide-react"
+import { User, Bot, Sparkles, Clock, Copy, Check, DollarSign, Trash2, Wrench, Terminal, ChevronDown, ChevronUp } from "lucide-react"
 import ReactMarkdown from "react-markdown"
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
 import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism'
 import { useState } from "react"
 import { formatCost } from "@/lib/models"
+import { ThinkingDisplay } from "./thinking-display"
 
 interface ToolCall {
   id: string
@@ -27,6 +28,7 @@ interface Message {
   outputTokens?: number
   cost?: number
   createdAt: string
+  thinkingContent?: string
   toolCalls?: ToolCall[]
 }
 
@@ -35,56 +37,6 @@ interface MessageListProps {
   isLoading: boolean
   conversationId?: string
   onMessagesDeleted?: (deletedMessageIds: string[]) => void
-}
-
-function CodeBlock({ children, className, ...props }: any) {
-  const [copied, setCopied] = useState(false)
-  const match = /language-(\w+)/.exec(className || '')
-  const language = match ? match[1] : ''
-  
-  const copyToClipboard = async () => {
-    await navigator.clipboard.writeText(children)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
-  }
-
-  if (language) {
-    return (
-      <div className="relative group my-4">
-        <div className="flex items-center justify-between bg-white/10 px-4 py-2 text-sm text-white/60 rounded-t-lg border border-white/20">
-          <span>{language}</span>
-          <button
-            onClick={copyToClipboard}
-            className="flex items-center gap-2 hover:text-white transition-colors opacity-0 group-hover:opacity-100"
-          >
-            {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-            {copied ? 'Copied!' : 'Copy'}
-          </button>
-        </div>
-        <SyntaxHighlighter
-          style={oneDark}
-          language={language}
-          PreTag="div"
-          className="!mt-0 !rounded-t-none !border-t-0"
-          customStyle={{
-            margin: 0,
-            borderTopLeftRadius: 0,
-            borderTopRightRadius: 0,
-            border: '1px solid rgba(255, 255, 255, 0.2)',
-            borderTop: 'none'
-          }}
-        >
-          {children}
-        </SyntaxHighlighter>
-      </div>
-    )
-  }
-
-  return (
-    <code className="bg-white/10 text-primary px-1.5 py-0.5 rounded text-sm font-mono border border-white/20" {...props}>
-      {children}
-    </code>
-  )
 }
 
 function ToolCallBox({ toolCall }: { toolCall: ToolCall }) {
@@ -215,6 +167,87 @@ export function MessageList({ messages, isLoading, conversationId, onMessagesDel
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null)
   const [deletingMessageId, setDeletingMessageId] = useState<string | null>(null)
   const [deleteConfirmation, setDeleteConfirmation] = useState<{ messageId: string; content: string } | null>(null)
+  const [collapsedMessages, setCollapsedMessages] = useState<Set<string>>(new Set())
+
+  // Helper function to check if a message should be collapsible
+  const isCollapsible = (message: Message) => {
+    const contentLength = message.content.length
+    const hasThinking = message.thinkingContent && message.thinkingContent.length > 0
+    const hasToolCalls = message.toolCalls && message.toolCalls.length > 0
+    
+    // Make message collapsible if content is long OR it has thinking/tools
+    return contentLength > 200 || hasThinking || hasToolCalls
+  }
+
+  // Helper function to get truncated content
+  const getTruncatedContent = (content: string, limit: number = 150) => {
+    if (content.length <= limit) return content
+    return content.slice(0, limit) + "..."
+  }
+
+  // Toggle collapse state for a message
+  const toggleMessageCollapse = (messageId: string) => {
+    setCollapsedMessages(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(messageId)) {
+        newSet.delete(messageId)
+      } else {
+        newSet.add(messageId)
+      }
+      return newSet
+    })
+  }
+
+  // Inline CodeBlock component
+  const CodeBlock = ({ children, className, ...props }: any) => {
+    const [copied, setCopied] = useState(false)
+    const match = /language-(\w+)/.exec(className || '')
+    const language = match ? match[1] : ''
+    
+    const copyToClipboard = async () => {
+      await navigator.clipboard.writeText(children)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    }
+
+    if (language) {
+      return (
+        <div className="relative group my-4">
+          <div className="flex items-center justify-between bg-white/10 px-4 py-2 text-sm text-white/60 rounded-t-lg border border-white/20">
+            <span>{language}</span>
+            <button
+              onClick={copyToClipboard}
+              className="flex items-center gap-2 hover:text-white transition-colors opacity-0 group-hover:opacity-100"
+            >
+              {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+              {copied ? 'Copied!' : 'Copy'}
+            </button>
+          </div>
+          <SyntaxHighlighter
+            style={oneDark}
+            language={language}
+            PreTag="div"
+            className="!mt-0 !rounded-t-none !border-t-0"
+            customStyle={{
+              margin: 0,
+              borderTopLeftRadius: 0,
+              borderTopRightRadius: 0,
+              border: '1px solid rgba(255, 255, 255, 0.2)',
+              borderTop: 'none'
+            }}
+          >
+            {children}
+          </SyntaxHighlighter>
+        </div>
+      )
+    }
+
+    return (
+      <code className="bg-white/10 text-primary px-1.5 py-0.5 rounded text-sm font-mono border border-white/20" {...props}>
+        {children}
+      </code>
+    )
+  }
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
@@ -390,130 +423,186 @@ export function MessageList({ messages, isLoading, conversationId, onMessagesDel
       </div>
       
       <div className="max-w-4xl mx-auto space-y-4 relative z-10">
-        {messages.map((message) => (
-          <div key={message.id} className="space-y-3">
-            {/* Tool Calls - shown as separate boxes */}
-            {message.toolCalls && message.toolCalls.length > 0 && (
-              <div className="mx-auto max-w-2xl">
-                {message.toolCalls.map((toolCall) => (
-                  <ToolCallBox key={toolCall.id} toolCall={toolCall} />
-                ))}
-              </div>
-            )}
-
-            {/* Regular Message */}
-            <div
-              className={`flex gap-3 group ${
-                message.role === "user" ? "justify-end" : "justify-start"
-              }`}
-            >
-              {message.role === "assistant" && (
-                <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0 mt-1">
-                  <Bot className="h-4 w-4 text-primary" />
+        {messages.map((message) => {
+          const isMessageCollapsed = collapsedMessages.has(message.id)
+          const messageIsCollapsible = isCollapsible(message)
+          
+          return (
+            <div key={message.id} className="space-y-3">
+              {/* Tool Calls - shown as separate boxes, respect collapse state */}
+              {message.toolCalls && message.toolCalls.length > 0 && !isMessageCollapsed && (
+                <div className="mx-auto max-w-2xl">
+                  {message.toolCalls.map((toolCall) => (
+                    <ToolCallBox key={toolCall.id} toolCall={toolCall} />
+                  ))}
                 </div>
               )}
-              
+
+              {/* Regular Message */}
               <div
-                className={`relative rounded-xl p-4 ${
-                  message.role === "user"
-                    ? "max-w-[85%] bg-gradient-to-r from-purple-500/60 to-blue-500/60 text-white ml-auto shadow-md border border-white/15 backdrop-blur-sm"
-                    : "w-full bg-white/5 backdrop-blur-sm text-white border border-white/10 shadow-lg"
+                className={`flex gap-3 group ${
+                  message.role === "user" ? "justify-end" : "justify-start"
                 }`}
               >
-                {/* Add delete button for user messages only */}
-                {conversationId && message.role === "user" && (
-                  <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                    <button
-                      onClick={() => handleDeleteConfirm(message.id, message.content)}
-                      disabled={deletingMessageId === message.id}
-                      className="h-6 w-6 rounded-full bg-red-500/20 hover:bg-red-500/40 border border-red-500/30 hover:border-red-500/50 text-red-400 hover:text-red-300 transition-all duration-200 flex items-center justify-center group/button"
-                      title="Delete this message and all following"
-                    >
-                      <Trash2 className="h-3 w-3" />
-                    </button>
+                {message.role === "assistant" && (
+                  <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0 mt-1">
+                    <Bot className="h-4 w-4 text-primary" />
                   </div>
                 )}
                 
-                {message.role === "assistant" ? (
-                  <>
-                    <div className="prose prose-sm max-w-none">
-                      <ReactMarkdown components={markdownComponents}>
-                        {message.content}
-                      </ReactMarkdown>
-                    </div>
-                  </>
-                ) : (
-                  <p className="text-sm leading-relaxed">{message.content}</p>
-                )}
-                
-                {/* Combined footer section */}
-                <div className="text-xs text-white/50 mt-3 border-t border-white/10 pt-2">
-                  {/* Metadata row */}
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <span>
-                        {new Date(message.createdAt).toLocaleTimeString([], { 
-                          hour: '2-digit', 
-                          minute: '2-digit' 
-                        })}
-                      </span>
-                      {/* Copy button for assistant messages */}
-                      {message.role === "assistant" && (
-                        <button
-                          onClick={() => copyMessageContent(message.content, message.id)}
-                          className="flex items-center gap-1 text-xs text-white/60 hover:text-white/80 transition-colors group"
-                        >
-                          {copiedMessageId === message.id ? (
-                            <>
-                              <Check className="h-3 w-3 text-green-400" />
-                              <span className="text-green-400">Copied!</span>
-                            </>
-                          ) : (
-                            <>
-                              <Copy className="h-3 w-3 group-hover:text-white/80" />
-                              <span>Copy message</span>
-                            </>
-                          )}
-                        </button>
-                      )}
-                    </div>
-                    {message.role === "assistant" && (
-                      <div className="flex items-center gap-2">
-                        {message.model && (
-                          <span className="text-xs text-purple-300 bg-gradient-to-r from-purple-500/20 to-pink-500/20 px-3 py-1 rounded-full border border-purple-400/40 font-medium shadow-lg backdrop-blur-sm">
-                            {message.model}
-                          </span>
+                <div
+                  className={`relative rounded-xl p-4 ${
+                    message.role === "user"
+                      ? "max-w-[85%] bg-gradient-to-r from-purple-500/60 to-blue-500/60 text-white ml-auto shadow-md border border-white/15 backdrop-blur-sm"
+                      : "w-full bg-white/5 backdrop-blur-sm text-white border border-white/10 shadow-lg"
+                  }`}
+                >
+                  {/* Control buttons - top right */}
+                  <div className="absolute top-1 right-1 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                    {/* Collapse/Expand button */}
+                    {messageIsCollapsible && (
+                      <button
+                        onClick={() => toggleMessageCollapse(message.id)}
+                        className="h-6 w-6 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 hover:border-white/30 text-white/70 hover:text-white transition-all duration-200 flex items-center justify-center"
+                        title={isMessageCollapsed ? "Expand message" : "Collapse message"}
+                      >
+                        {isMessageCollapsed ? (
+                          <ChevronDown className="h-3 w-3" />
+                        ) : (
+                          <ChevronUp className="h-3 w-3" />
                         )}
-                        {message.latency && (
-                          <div className="flex items-center gap-1 bg-gradient-to-r from-blue-500/20 to-cyan-500/20 px-2 py-1 rounded-full border border-blue-400/40">
-                            <Clock className="h-3 w-3 text-blue-300" />
-                            <span className="text-xs text-blue-300 font-medium">
-                              {message.latency}ms
-                            </span>
-                          </div>
-                        )}
-                        {message.cost !== undefined && message.cost > 0 && (
-                          <div className="flex items-center gap-1 bg-gradient-to-r from-emerald-500/20 to-green-500/20 px-2 py-1 rounded-full border border-emerald-400/40">
-                            <DollarSign className="h-3 w-3 text-emerald-300" />
-                            <span className="text-xs text-emerald-300 font-medium">
-                              {formatCost(message.cost)}
-                            </span>
-                          </div>
-                        )}
-                      </div>
+                      </button>
+                    )}
+                    
+                    {/* Delete button for user messages only */}
+                    {conversationId && message.role === "user" && (
+                      <button
+                        onClick={() => handleDeleteConfirm(message.id, message.content)}
+                        disabled={deletingMessageId === message.id}
+                        className="h-6 w-6 rounded-full bg-red-500/20 hover:bg-red-500/40 border border-red-500/30 hover:border-red-500/50 text-red-400 hover:text-red-300 transition-all duration-200 flex items-center justify-center group/button"
+                        title="Delete this message and all following"
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </button>
                     )}
                   </div>
+                  
+                  {/* Message Content */}
+                  {message.role === "assistant" ? (
+                    <>
+                      {/* Show thinking content if available and not collapsed */}
+                      {message.thinkingContent && !isMessageCollapsed && (
+                        <ThinkingDisplay 
+                          content={message.thinkingContent} 
+                          isStreaming={false}
+                        />
+                      )}
+                      
+                      {/* Assistant message content */}
+                      <div className="prose prose-sm max-w-none">
+                        <ReactMarkdown components={markdownComponents}>
+                          {isMessageCollapsed ? getTruncatedContent(message.content) : message.content}
+                        </ReactMarkdown>
+                      </div>
+                      
+                      {/* Collapsed indicator */}
+                      {isMessageCollapsed && messageIsCollapsible && (
+                        <button
+                          onClick={() => toggleMessageCollapse(message.id)}
+                          className="mt-2 text-xs text-white/60 hover:text-white/80 transition-colors"
+                        >
+                          Click to expand full message...
+                        </button>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      {/* User message content */}
+                      <p className="text-sm leading-relaxed">
+                        {isMessageCollapsed ? getTruncatedContent(message.content) : message.content}
+                      </p>
+                      
+                      {/* Collapsed indicator */}
+                      {isMessageCollapsed && messageIsCollapsible && (
+                        <button
+                          onClick={() => toggleMessageCollapse(message.id)}
+                          className="mt-2 text-xs text-white/60 hover:text-white/80 transition-colors"
+                        >
+                          Click to expand full message...
+                        </button>
+                      )}
+                    </>
+                  )}
+                  
+                  {/* Combined footer section */}
+                  <div className="text-xs text-white/50 mt-3 border-t border-white/10 pt-2">
+                    {/* Metadata row */}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <span>
+                          {new Date(message.createdAt).toLocaleTimeString([], { 
+                            hour: '2-digit', 
+                            minute: '2-digit' 
+                          })}
+                        </span>
+                        {/* Copy button for assistant messages */}
+                        {message.role === "assistant" && (
+                          <button
+                            onClick={() => copyMessageContent(message.content, message.id)}
+                            className="flex items-center gap-1 text-xs text-white/60 hover:text-white/80 transition-colors group"
+                          >
+                            {copiedMessageId === message.id ? (
+                              <>
+                                <Check className="h-3 w-3 text-green-400" />
+                                <span className="text-green-400">Copied!</span>
+                              </>
+                            ) : (
+                              <>
+                                <Copy className="h-3 w-3 group-hover:text-white/80" />
+                                <span>Copy message</span>
+                              </>
+                            )}
+                          </button>
+                        )}
+                      </div>
+                      {message.role === "assistant" && (
+                        <div className="flex items-center gap-2">
+                          {message.model && (
+                            <span className="text-xs text-purple-300 bg-gradient-to-r from-purple-500/20 to-pink-500/20 px-3 py-1 rounded-full border border-purple-400/40 font-medium shadow-lg backdrop-blur-sm">
+                              {message.model}
+                            </span>
+                          )}
+                          {message.latency && (
+                            <div className="flex items-center gap-1 bg-gradient-to-r from-blue-500/20 to-cyan-500/20 px-2 py-1 rounded-full border border-blue-400/40">
+                              <Clock className="h-3 w-3 text-blue-300" />
+                              <span className="text-xs text-blue-300 font-medium">
+                                {message.latency}ms
+                              </span>
+                            </div>
+                          )}
+                          {message.cost !== undefined && message.cost > 0 && (
+                            <div className="flex items-center gap-1 bg-gradient-to-r from-emerald-500/20 to-green-500/20 px-2 py-1 rounded-full border border-emerald-400/40">
+                              <DollarSign className="h-3 w-3 text-emerald-300" />
+                              <span className="text-xs text-emerald-300 font-medium">
+                                {formatCost(message.cost)}
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
-              </div>
 
-              {message.role === "user" && (
-                <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0 mt-1">
-                  <User className="h-4 w-4 text-primary" />
-                </div>
-              )}
+                {message.role === "user" && (
+                  <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0 mt-1">
+                    <User className="h-4 w-4 text-primary" />
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
-        ))}
+          )
+        })}
         
         {isLoading && (
           <div className="flex gap-3 justify-start">

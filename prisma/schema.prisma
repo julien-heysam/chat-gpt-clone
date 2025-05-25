@@ -85,19 +85,20 @@ model Conversation {
 }
 
 model Message {
-  id             String       @id @default(cuid())
-  content        String
-  role           MessageRole
-  conversationId String
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
-  model          String       @default("claude-4-sonnet")
-  latency        Int?
-  cost           Float?
-  inputTokens    Int?
-  outputTokens   Int?
-  toolCalls      Json?
-  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  id              String       @id @default(cuid())
+  content         String
+  role            MessageRole
+  conversationId  String
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  model           String       @default("claude-4-sonnet")
+  latency         Int?
+  cost            Float?
+  inputTokens     Int?
+  outputTokens    Int?
+  toolCalls       Json?
+  thinkingContent String?      // AI's thinking process content
+  conversation    Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
 }
 
 model Tool {

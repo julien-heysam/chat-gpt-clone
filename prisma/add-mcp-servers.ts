@@ -8,7 +8,6 @@ async function main() {
   // Comprehensive MCP Servers from https://github.com/modelcontextprotocol/servers
   const mcpServers = [
     // 🌟 REFERENCE SERVERS (Official)
-    
     // Web Search & Data
     {
       name: 'Brave Search',

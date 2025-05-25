@@ -60,10 +60,6 @@ export function ChatHeader({ conversationId, refreshTrigger = 0, selectedModel, 
       <div className="max-w-4xl mx-auto p-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center">
-              <Cpu className="h-4 w-4 text-primary" />
-            </div>
-            <h1 className="text-lg font-semibold text-white">Neural Chat</h1>
           </div>
           
           <div className="flex items-center gap-4">

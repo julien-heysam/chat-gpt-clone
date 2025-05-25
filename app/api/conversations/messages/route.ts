@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { estimateTokenCount, calculateCost } from "@/lib/models"
+import { generateConversationTitle } from "@/lib/conversation-naming"
 
 export async function POST(request: NextRequest) {
   try {
@@ -11,13 +12,22 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const { conversationId, content, role, model, latency, inputTokens, outputTokens, toolCalls } = await request.json()
+    const { conversationId, content, role, model, latency, inputTokens, outputTokens, toolCalls, thinkingContent } = await request.json()
+
+    console.log(`Saving message with thinking content: ${thinkingContent ? thinkingContent.length + ' chars' : 'none'}`)
 
     // Verify the conversation belongs to the user
     const conversation = await prisma.conversation.findFirst({
       where: {
         id: conversationId,
         userId: session.user.id
+      },
+      include: {
+        _count: {
+          select: {
+            messages: true
+          }
+        }
       }
     })
 
@@ -69,6 +79,7 @@ export async function POST(request: NextRequest) {
         ...(finalOutputTokens && { outputTokens: finalOutputTokens }),
         ...(cost > 0 && { cost }),
         ...(toolCalls && { toolCalls }),
+        ...(thinkingContent && { thinkingContent }),
         conversationId
       }
     })
@@ -83,6 +94,30 @@ export async function POST(request: NextRequest) {
       }
     })
 
+    // Auto-generate conversation title if this is the first message or if the conversation still has the default title
+    const isFirstMessage = conversation._count.messages === 0
+    const hasDefaultTitle = conversation.title === "New Conversation" || conversation.title.startsWith("New Conversation")
+    
+    if (isFirstMessage || hasDefaultTitle) {
+      try {
+        // Generate title based on the message content
+        const generatedTitle = await generateConversationTitle(content, role as 'user' | 'assistant')
+        
+        // Update the conversation title in the background (don't block the response)
+        prisma.conversation.update({
+          where: { id: conversationId },
+          data: { title: generatedTitle }
+        }).catch(error => {
+          console.error('Error updating conversation title:', error)
+        })
+        
+        console.log(`Auto-generated title for conversation ${conversationId}: "${generatedTitle}"`)
+      } catch (error) {
+        console.error('Error generating conversation title:', error)
+        // Title generation failure shouldn't block message creation
+      }
+    }
+
     // Return message in the format expected by the frontend
     return NextResponse.json({
       id: message.id,
@@ -94,6 +129,7 @@ export async function POST(request: NextRequest) {
       outputTokens: message.outputTokens,
       cost: message.cost,
       createdAt: message.createdAt,
+      thinkingContent: message.thinkingContent,
       toolCalls: message.toolCalls ? JSON.parse(JSON.stringify(message.toolCalls)) : undefined
     })
   } catch (error) {

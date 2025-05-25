@@ -138,5 +138,24 @@ export const MCP_SERVER_CONFIGS: Record<string, MCPServerConfig> = {
     env: {
       POSTGRES_CONNECTION_STRING: process.env.DATABASE_URL || ''
     }
+  },
+  // Python MCP servers using uvx
+  'git': {
+    name: 'git',
+    command: 'uvx',
+    args: ['mcp-server-git'],
+    env: {}
+  },
+  'playwright': {
+    name: 'playwright',
+    command: 'uvx',
+    args: ['mcp-server-playwright'],
+    env: {}
+  },
+  'memory': {
+    name: 'memory',
+    command: 'npx',
+    args: ['@modelcontextprotocol/server-memory'],
+    env: {}
   }
 } 

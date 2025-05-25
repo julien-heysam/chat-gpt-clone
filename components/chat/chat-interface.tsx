@@ -107,6 +107,13 @@ export function ChatInterface() {
         const newConversation = await response.json()
         setConversations(prev => [newConversation, ...prev])
         setSelectedConversationId(newConversation.id)
+        
+        // Set up a timeout to refresh the conversation list after 3 seconds
+        // This allows time for the automatic title generation to complete
+        setTimeout(() => {
+          loadConversations()
+        }, 3000)
+        
         return newConversation.id
       }
     } catch (error) {

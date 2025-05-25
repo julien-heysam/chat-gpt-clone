@@ -333,7 +333,8 @@ async function callAnthropicAPI(
   systemPrompt?: string,
   temperature: number = 0.7,
   maxTokens: number = 4096,
-  tools: Tool[] = []
+  tools: Tool[] = [],
+  enableThinking: boolean = false
 ) {
   // Prepare messages for Anthropic API
   const conversationMessages: Anthropic.Messages.MessageParam[] = []
@@ -348,15 +349,30 @@ async function callAnthropicAPI(
   }
 
   const anthropicTools = tools.length > 0 ? convertToolsToAnthropicFormat(tools) : undefined
-
-  const completion = await anthropic.messages.create({
+  
+  // Check if model supports thinking
+  const modelInfo = getModelById(model)
+  const supportsThinking = modelInfo?.capabilities.includes('extended-thinking') || false
+  
+  // Build request options
+  const requestOptions: any = {
     model,
     max_tokens: maxTokens,
     system: systemPrompt || "You are a helpful AI assistant.",
     messages: conversationMessages,
-    temperature,
+    temperature: enableThinking && supportsThinking ? 1 : temperature,
     ...(anthropicTools && { tools: anthropicTools })
-  })
+  }
+  
+  // Add thinking configuration if enabled and supported
+  if (enableThinking && supportsThinking) {
+    requestOptions.thinking = {
+      type: "enabled",
+      budget_tokens: Math.min(Math.floor(maxTokens * 0.3), 10000) // Use 30% of max tokens for thinking, capped at 10k
+    }
+  }
+
+  const completion = await anthropic.messages.create(requestOptions)
 
   // Handle different types of content blocks
   let responseText = ""
@@ -364,6 +380,9 @@ async function callAnthropicAPI(
   for (const contentBlock of completion.content) {
     if (contentBlock.type === "text") {
       responseText += contentBlock.text
+    } else if (contentBlock.type === "thinking") {
+      // Add thinking content with special formatting
+      responseText += `<thinking>\n${contentBlock.thinking}\n</thinking>\n\n`
     } else if (contentBlock.type === "tool_use") {
       // Execute the tool call
       try {
@@ -391,7 +410,8 @@ async function* callAnthropicStreamingAPI(
   systemPrompt?: string,
   temperature: number = 0.7,
   maxTokens: number = 4096,
-  tools: Tool[] = []
+  tools: Tool[] = [],
+  enableThinking: boolean = false
 ) {
   // Prepare messages for Anthropic API
   const conversationMessages: Anthropic.Messages.MessageParam[] = []
@@ -406,20 +426,35 @@ async function* callAnthropicStreamingAPI(
   }
 
   const anthropicTools = tools.length > 0 ? convertToolsToAnthropicFormat(tools) : undefined
+  
+  // Check if model supports thinking
+  const modelInfo = getModelById(model)
+  const supportsThinking = modelInfo?.capabilities.includes('extended-thinking') || false
 
   // Track tool use for follow-up
   let toolUseBlocks: any[] = []
   let toolResults: any[] = []
-
-  const stream = await anthropic.messages.create({
+  
+  // Build request options
+  const requestOptions: any = {
     model,
     max_tokens: maxTokens,
     system: systemPrompt || "You are a helpful AI assistant.",
     messages: conversationMessages,
-    temperature,
+    temperature: enableThinking && supportsThinking ? 1 : temperature,
     stream: true,
     ...(anthropicTools && { tools: anthropicTools })
-  })
+  }
+  
+  // Add thinking configuration if enabled and supported
+  if (enableThinking && supportsThinking) {
+    requestOptions.thinking = {
+      type: "enabled",
+      budget_tokens: Math.min(Math.floor(maxTokens * 0.3), 10000) // Use 30% of max tokens for thinking, capped at 10k
+    }
+  }
+
+  const stream = anthropic.messages.stream(requestOptions)
 
   let currentToolUse: any = null
   let accumulatedToolInput = ""
@@ -438,12 +473,26 @@ async function* callAnthropicStreamingAPI(
             status: 'calling'
           }
         }) + '\n'
+      } else if (chunk.content_block.type === 'thinking') {
+        // Send thinking start event
+        console.log('Sending thinking_start event')
+        yield JSON.stringify({
+          type: 'thinking_start',
+          data: {}
+        }) + '\n'
       }
     } else if (chunk.type === 'content_block_delta') {
       if (chunk.delta.type === 'text_delta') {
         yield JSON.stringify({
           type: 'content',
           data: chunk.delta.text
+        }) + '\n'
+      } else if (chunk.delta.type === 'thinking_delta') {
+        // Handle thinking content
+        console.log('Sending thinking delta:', chunk.delta.thinking?.length || 0, 'chars')
+        yield JSON.stringify({
+          type: 'thinking',
+          data: chunk.delta.thinking
         }) + '\n'
       } else if (chunk.delta.type === 'input_json_delta' && currentToolUse) {
         accumulatedToolInput += chunk.delta.partial_json
@@ -554,7 +603,7 @@ async function* callAnthropicStreamingAPI(
         max_tokens: maxTokens,
         system: systemPrompt || "You are a helpful AI assistant. Please analyze and summarize the tool results to provide a comprehensive answer to the user's question.",
         messages: followUpMessages,
-        temperature,
+        temperature: enableThinking && supportsThinking ? 1 : temperature,
         stream: true
       })
 
@@ -677,7 +726,8 @@ export async function POST(request: NextRequest) {
       temperature = 0.7,
       maxTokens = 4096,
       tools = [],
-      conversationId
+      conversationId,
+      enableThinking = false
     } = await request.json()
 
     // Get model information
@@ -688,6 +738,10 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       )
     }
+
+    // Log thinking configuration for debugging
+    const supportsThinking = modelInfo.capabilities.includes('extended-thinking')
+    console.log(`Thinking debug: enableThinking=${enableThinking}, model=${modelId}, supportsThinking=${supportsThinking}`)
 
     // Validate and clamp maxTokens to model's actual limit
     const validatedMaxTokens = Math.min(Math.max(maxTokens, 1), modelInfo.maxOutputTokens)
@@ -745,7 +799,8 @@ export async function POST(request: NextRequest) {
               enhancedSystemPrompt, 
               temperature, 
               validatedMaxTokens,
-              tools
+              tools,
+              enableThinking
             )) {
               controller.enqueue(encoder.encode(chunk))
             }
@@ -776,7 +831,7 @@ export async function POST(request: NextRequest) {
       // Call appropriate API based on provider (non-streaming)
       let result
       if (modelInfo.provider === 'anthropic') {
-        result = await callAnthropicAPI(messages, modelId, enhancedSystemPrompt, temperature, validatedMaxTokens, tools)
+        result = await callAnthropicAPI(messages, modelId, enhancedSystemPrompt, temperature, validatedMaxTokens, tools, enableThinking)
       } else if (modelInfo.provider === 'openai') {
         result = await callOpenAIAPI(messages, modelId, enhancedSystemPrompt, temperature, validatedMaxTokens)
       } else {

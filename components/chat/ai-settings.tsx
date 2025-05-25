@@ -17,6 +17,8 @@ interface AISettingsProps {
   selectedModel: string
   onTemperatureChange: (value: number) => void
   onMaxTokensChange: (value: number) => void
+  enableThinking?: boolean
+  onEnableThinkingChange?: (value: boolean) => void
 }
 
 export function AISettings({
@@ -24,13 +26,18 @@ export function AISettings({
   maxTokens,
   selectedModel,
   onTemperatureChange,
-  onMaxTokensChange
+  onMaxTokensChange,
+  enableThinking = false,
+  onEnableThinkingChange
 }: AISettingsProps) {
   const [isOpen, setIsOpen] = useState(false)
   
   // Get current model info for limits
   const currentModel = getModelById(selectedModel)
   const modelMaxTokens = currentModel?.maxOutputTokens || 8192
+  
+  // Check if current model supports thinking
+  const supportsThinking = currentModel?.capabilities.includes('extended-thinking') || false
   
   // Ensure current maxTokens doesn't exceed model limit
   const safeMaxTokens = Math.min(maxTokens, modelMaxTokens)
@@ -78,6 +85,37 @@ export function AISettings({
             <div className="p-2 bg-white/5 rounded border border-white/10">
               <p className="text-xs text-white/80">
                 <span className="font-medium">{currentModel.name}</span> • Max Output: {modelMaxTokens.toLocaleString()} tokens
+              </p>
+            </div>
+          )}
+
+          {/* Thinking Mode */}
+          {supportsThinking && onEnableThinkingChange && (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <label className="text-sm text-white/80 flex items-center gap-2">
+                  <Brain className="h-3 w-3" />
+                  Show Thinking Process
+                </label>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className={`h-6 w-11 p-0 border-white/20 transition-colors ${
+                    enableThinking 
+                      ? 'bg-primary border-primary text-primary-foreground' 
+                      : 'bg-white/5 text-white hover:bg-white/10'
+                  }`}
+                  onClick={() => onEnableThinkingChange(!enableThinking)}
+                >
+                  <div className={`h-4 w-4 rounded-full bg-current transition-transform ${
+                    enableThinking ? 'translate-x-5' : 'translate-x-0'
+                  }`} />
+                </Button>
+              </div>
+              <p className="text-xs text-white/60">
+                {enableThinking 
+                  ? "The AI will show its reasoning process as it thinks through your request" 
+                  : "The AI will only show its final response"}
               </p>
             </div>
           )}

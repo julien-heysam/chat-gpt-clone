@@ -22,6 +22,7 @@ interface Message {
   outputTokens?: number
   cost?: number
   createdAt: string
+  thinkingContent?: string
   toolCalls?: Array<{
     id: string
     name: string
@@ -68,6 +69,7 @@ export function ChatArea({
   const [currentInput, setCurrentInput] = useState("")
   const [documentRefreshTrigger, setDocumentRefreshTrigger] = useState(0)
   const [selectedTools, setSelectedTools] = useState<Tool[]>([])
+  const [enableThinking, setEnableThinking] = useState(false)
   
   // New state for local control (optional)
   const [localTemperature, setLocalTemperature] = useState(temperature)
@@ -139,6 +141,7 @@ export function ChatArea({
           outputTokens: msg.outputTokens,
           cost: msg.cost,
           createdAt: msg.createdAt,
+          thinkingContent: msg.thinkingContent,
           toolCalls: msg.toolCalls || undefined
         }))
         setMessages(formattedMessages)
@@ -152,7 +155,7 @@ export function ChatArea({
     }
   }
 
-  const saveMessage = async (convId: string, content: string, role: string, model?: string, latency?: number, toolCalls?: any[]) => {
+  const saveMessage = async (convId: string, content: string, role: string, model?: string, latency?: number, toolCalls?: any[], thinkingContent?: string) => {
     try {
       const response = await fetch('/api/conversations/messages', {
         method: 'POST',
@@ -165,7 +168,8 @@ export function ChatArea({
           role,
           model,
           latency,
-          toolCalls
+          toolCalls,
+          thinkingContent
         })
       })
 
@@ -284,7 +288,8 @@ export function ChatArea({
               systemPrompt: activeSystemPrompt,
               temperature: temperature,
               maxTokens: maxTokens,
-              tools: tools.length > 0 ? tools : selectedTools
+              tools: tools.length > 0 ? tools : selectedTools,
+              enableThinking: enableThinking
             })
           })
 
@@ -298,6 +303,7 @@ export function ChatArea({
           }
 
           let accumulatedContent = ""
+          let accumulatedThinking = ""
           let currentToolCalls: any[] = []
 
           while (true) {
@@ -319,6 +325,30 @@ export function ChatArea({
                       prev.map(msg => 
                         msg.id === tempAiMessage.id 
                           ? { ...msg, content: accumulatedContent }
+                          : msg
+                      )
+                    )
+                    break
+                    
+                  case 'thinking_start':
+                    // Initialize thinking content
+                    accumulatedThinking = ""
+                    setMessages(prev => 
+                      prev.map(msg => 
+                        msg.id === tempAiMessage.id 
+                          ? { ...msg, thinkingContent: accumulatedThinking }
+                          : msg
+                      )
+                    )
+                    break
+                    
+                  case 'thinking':
+                    // Accumulate thinking content
+                    accumulatedThinking += event.data
+                    setMessages(prev => 
+                      prev.map(msg => 
+                        msg.id === tempAiMessage.id 
+                          ? { ...msg, thinkingContent: accumulatedThinking }
                           : msg
                       )
                     )
@@ -407,7 +437,8 @@ export function ChatArea({
           
           // Save final AI message to database
           if (accumulatedContent) {
-            const savedAiMessage = await saveMessage(currentConversationId!, accumulatedContent, "assistant", model, responseLatency, currentToolCalls)
+            console.log('Saving message with thinking content:', accumulatedThinking ? accumulatedThinking.length + ' chars' : 'none')
+            const savedAiMessage = await saveMessage(currentConversationId!, accumulatedContent, "assistant", model, responseLatency, currentToolCalls, accumulatedThinking)
             
             if (savedAiMessage) {
               setMessages(prev => 
@@ -506,8 +537,8 @@ export function ChatArea({
             </div>
             
             {/* Enhanced title with gradient */}
-            <h1 className="text-5xl md:text-6xl font-bold mb-6 text-transparent bg-clip-text bg-gradient-to-r from-white via-purple-300 to-blue-300 animate-pulse">
-              Neural Chat
+            <h1 className="text-5xl md:text-6xl font-bold mb-6 text-transparent bg-clip-text bg-gradient-to-r from-white via-purple-300 to-blue-300">
+              Welcome
             </h1>
             <h2 className="text-xl md:text-2xl font-light mb-8 text-white/80">
               Sites beyond imagination, one prompt away.
@@ -544,10 +575,10 @@ export function ChatArea({
             </div>
           </div>
         </div>
-        <MessageInput 
-          onSendMessage={handleSendMessage} 
-          selectedModel={selectedModel} 
-          onModelChange={setSelectedModel} 
+        <MessageInput
+          onSendMessage={handleSendMessage}
+          selectedModel={selectedModel}
+          onModelChange={setSelectedModel}
           value={currentInput}
           onInputChange={handleInputChange}
           disabled={isLoading}
@@ -557,6 +588,8 @@ export function ChatArea({
           onMaxTokensChange={setLocalMaxTokens}
           selectedTools={selectedTools}
           onToolsChange={setSelectedTools}
+          enableThinking={enableThinking}
+          onEnableThinkingChange={setEnableThinking}
         />
       </div>
     )
@@ -662,10 +695,10 @@ export function ChatArea({
             </div>
           </div>
         </div>
-        <MessageInput 
-          onSendMessage={handleSendMessage} 
-          selectedModel={selectedModel} 
-          onModelChange={setSelectedModel} 
+        <MessageInput
+          onSendMessage={handleSendMessage}
+          selectedModel={selectedModel}
+          onModelChange={setSelectedModel}
           value={currentInput}
           onInputChange={handleInputChange}
           disabled={isLoading}
@@ -675,6 +708,8 @@ export function ChatArea({
           onMaxTokensChange={setLocalMaxTokens}
           selectedTools={selectedTools}
           onToolsChange={setSelectedTools}
+          enableThinking={enableThinking}
+          onEnableThinkingChange={setEnableThinking}
         />
       </div>
     )
@@ -711,10 +746,10 @@ export function ChatArea({
       
       {/* Input - always at bottom */}
       <div className="flex-shrink-0">
-        <MessageInput 
-          onSendMessage={handleSendMessage} 
-          selectedModel={selectedModel} 
-          onModelChange={setSelectedModel} 
+        <MessageInput
+          onSendMessage={handleSendMessage}
+          selectedModel={selectedModel}
+          onModelChange={setSelectedModel}
           value={currentInput}
           onInputChange={handleInputChange}
           disabled={isLoading}
@@ -724,6 +759,8 @@ export function ChatArea({
           onMaxTokensChange={setLocalMaxTokens}
           selectedTools={selectedTools}
           onToolsChange={setSelectedTools}
+          enableThinking={enableThinking}
+          onEnableThinkingChange={setEnableThinking}
         />
       </div>
     </div>

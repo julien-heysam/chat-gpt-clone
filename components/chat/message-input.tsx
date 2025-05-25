@@ -28,6 +28,8 @@ interface MessageInputProps {
   onMaxTokensChange?: (value: number) => void
   selectedTools?: Tool[]
   onToolsChange?: (tools: Tool[]) => void
+  enableThinking?: boolean
+  onEnableThinkingChange?: (value: boolean) => void
 }
 
 export function MessageInput({ 
@@ -42,7 +44,9 @@ export function MessageInput({
   onTemperatureChange,
   onMaxTokensChange,
   selectedTools = [],
-  onToolsChange
+  onToolsChange,
+  enableThinking,
+  onEnableThinkingChange
 }: MessageInputProps) {
   const [message, setMessage] = useState(value)
   const [isToolPickerOpen, setIsToolPickerOpen] = useState(false)
@@ -194,6 +198,8 @@ export function MessageInput({
               selectedModel={selectedModel}
               onTemperatureChange={onTemperatureChange}
               onMaxTokensChange={onMaxTokensChange}
+              enableThinking={enableThinking}
+              onEnableThinkingChange={onEnableThinkingChange}
             />
           )}
         </div>

@@ -45,6 +45,7 @@ export async function GET(
       outputTokens: message.outputTokens,
       cost: message.cost,
       createdAt: message.createdAt,
+      thinkingContent: message.thinkingContent,
       toolCalls: message.toolCalls ? JSON.parse(JSON.stringify(message.toolCalls)) : undefined
     }))
 

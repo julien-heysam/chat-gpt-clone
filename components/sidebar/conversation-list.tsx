@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { MessageSquare, MoreHorizontal, Zap, FolderInput, Trash2, Edit } from "lucide-react"
+import { MessageSquare, MoreHorizontal, Zap, FolderInput, Trash2, Edit, Sparkles } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { MoveConversation } from "./move-conversation"
 
@@ -64,6 +64,30 @@ export function ConversationList({
     setRenameConversation(conversation)
     setNewTitle(conversation.title)
     setActiveMenu(null)
+  }
+
+  const handleGenerateTitleClick = async (conversation: Conversation) => {
+    setActiveMenu(null)
+    
+    try {
+      const response = await fetch(`/api/conversations/${conversation.id}/generate-title`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+
+      if (response.ok) {
+        const data = await response.json()
+        onConversationRenamed?.(conversation.id, data.title)
+      } else {
+        const errorData = await response.json()
+        alert(`Failed to generate title: ${errorData.error || 'Unknown error'}`)
+      }
+    } catch (error) {
+      console.error('Error generating title:', error)
+      alert('Failed to generate title. Please try again.')
+    }
   }
 
   const handleDeleteClick = (conversation: Conversation) => {
@@ -238,6 +262,13 @@ export function ConversationList({
                     >
                       <Edit className="h-4 w-4" />
                       Rename
+                    </button>
+                    <button
+                      className="w-full px-3 py-2 text-left text-sm text-white/80 hover:bg-white/10 flex items-center gap-2"
+                      onClick={() => handleGenerateTitleClick(conversation)}
+                    >
+                      <Sparkles className="h-4 w-4" />
+                      Generate title
                     </button>
                     {onConversationDeleted && (
                       <button
